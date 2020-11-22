@@ -1,0 +1,61 @@
+{
+  "extends": [
+    "tslint-eslint-rules",
+    "tslint-config-prettier",
+    "rxjs-tslint-rules"
+  ],
+  "rules": {
+    "curly": true,
+    "class-name": true,
+    "no-duplicate-variable": true,
+    "no-unused-variable": false,
+    "no-unused-expression": false,
+    // "no-console": [true, "log", "trace"],
+    "no-construct": true,
+    "no-debugger": true,
+    "no-var-keyword": true,
+    // "no-empty": true,
+    "no-eval": true,
+    "no-var-requires": false,
+    "no-require-imports": false,
+    "no-shadowed-variable": false,
+    "prefer-const": false,
+    "ter-prefer-arrow-callback": true,
+    "use-isnan": true,
+    "comment-format": [
+      true,
+      "check-space"
+      // "check-lowercase"
+    ],
+    "rxjs-no-add": {
+      "severity": "error"
+    },
+    "rxjs-no-patched": {
+      "severity": "error"
+    },
+    "rxjs-no-unsafe-scope": {
+      "severity": "error"
+    },
+    "rxjs-no-unsafe-switchmap": {
+      "severity": "error"
+    },
+    "rxjs-no-subject-unsubscribe": {
+      "severity": "error"
+    },
+    "rxjs-finnish": {
+      "options": [
+        {
+          "functions": false,
+          "methods": false,
+          "parameters": false,
+          "properties": false,
+          "variables": true
+        }
+      ],
+      "severity": "error"
+    },
+    "rxjs-just": {
+      "severity": "error"
+    }
+  }
+}

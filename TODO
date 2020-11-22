@@ -1,0 +1,37 @@
+pause
+waiting
+computing ?
+uploading
+error
+complete
+
+
+ 
+
+TaskObserver = from(fileIDList).pipe(
+  mergeMap(FileObserver)
+)
+
+FileObserver = of(fileID).pipe(
+  mergeMap(()=>{
+    from(chunkList).pipe(
+      mergeMap(ChunkObserver)
+    )
+  })
+)
+
+ChunkObserver = of(chunk).pipe()
+
+
+TaskObserver.unsubscribe()
+
+
+interface result{
+  error:Error,
+  reponse:Reponse
+}
+
+interface Reponse{
+  status:number
+  data:any
+}

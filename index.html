@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title></title>
+  </head>
+  <body style="min-height: 500px;">
+    <div id="app" style="margin: 10px;">
+      <!-- <div
+        id="file-dragger"
+        style="height: 200px;border: 1px dashed;text-align: center;line-height: 200px;color: gray;"
+      >
+        Drop files here
+      </div> -->
+      <br />
+      <input type="file" id="fileInput" />
+      <input type="file" id="fileInput1" />
+      <br />
+
+      <button id="uploadBtn">upload</button>
+      <button id="pauseBtn">pause</button>
+      <button id="resumeBtn">resume</button>
+      <button id="retryBtn">retry</button>
+      <button id="cancelBtn">cancel</button>
+    </div>
+    <hr />
+    <div id="task-container"></div>
+    <script src="/renderer.js"></script>
+  </body>
+</html>
