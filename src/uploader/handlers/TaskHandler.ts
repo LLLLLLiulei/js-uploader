@@ -1,5 +1,4 @@
 import { UploadTask } from '../modules/UploadTask'
-import * as SparkMD5 from 'spark-md5'
 import { Observable, Subscriber, of, Subscription, from, combineLatest, forkJoin } from 'rxjs'
 import { ID, StringKeyObject, StatusCode } from '../../types'
 import { fileReader } from '../helpers/brower/file-reader'
