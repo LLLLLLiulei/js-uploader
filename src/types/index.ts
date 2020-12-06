@@ -7,6 +7,7 @@ export enum EventType {
   TaskRestore = 'TaskRestore',
   TaskPresist = 'TaskPresist',
   TaskUploadStart = 'TaskUploadStart',
+  TaskWaiting = 'TaskWaiting',
   TaskProgress = 'TaskProgress',
   TaskPaused = 'TaskPaused',
   TaskResume = 'TaskResume',

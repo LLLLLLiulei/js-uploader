@@ -2,10 +2,11 @@ import { UploadTask } from '../modules/UploadTask'
 import { Observable, Subscriber, of, from, forkJoin } from 'rxjs'
 import { ID, StringKeyObject, StatusCode } from '../../types'
 import { fileReader } from '../helpers/brower/file-reader'
-import { tap, concatMap, mapTo, filter, map } from 'rxjs/operators'
+import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
 import { FileStore, UploadFile, FileChunk, Storage } from '../modules'
 import { UploaderOptions } from '..'
 import Base from '../Base'
+import { md5WorkerPool } from '../../worker'
 
 export default abstract class TaskHandler extends Base {
   public task: UploadTask
@@ -44,6 +45,16 @@ export default abstract class TaskHandler extends Base {
       }
       return () => fileReader.abort()
     })
+  }
+
+  protected computeFileMd5ByWorker (uploadFile: UploadFile): Observable<string>
+  protected computeFileMd5ByWorker (blob: Blob): Observable<string>
+  protected computeFileMd5ByWorker (data: UploadFile | Blob): Observable<string> {
+    if (data instanceof Blob) {
+      return from(md5WorkerPool.execute(data))
+    } else {
+      return this.readFile(data).pipe(switchMap((data: Blob) => from(md5WorkerPool.execute(data))))
+    }
   }
 
   protected toFormData (params: StringKeyObject): FormData {
@@ -93,7 +104,7 @@ export default abstract class TaskHandler extends Base {
                   tap((chunkList: FileChunk[]) => {
                     upfile.chunkList = chunkList.filter((ck) => {
                       if (ck) {
-                        ck.status = ck.status === StatusCode.Uploading ? StatusCode.Pause : ck.status
+                        ck.status = ck.status === StatusCode.Complete ? ck.status : StatusCode.Pause
                       }
                       return !!ck
                     }) as FileChunk[]
@@ -125,14 +136,14 @@ export default abstract class TaskHandler extends Base {
     })
   }
 
-  protected readFile (uploadfile: UploadFile, chunk: FileChunk): Observable<Blob> {
+  protected readFile (uploadfile: UploadFile, chunk?: FileChunk): Observable<Blob> {
     return new Observable((ob: Subscriber<Blob>) => {
       let reader = this.uploaderOptions.readFileFn
       let res: Promise<Blob> | Blob
       if (typeof reader === 'function') {
-        res = reader(this.task, uploadfile, chunk)
+        res = reader(this.task, uploadfile, chunk?.start, chunk?.end)
       } else {
-        res = fileReader(uploadfile, chunk.start, chunk.end)
+        res = fileReader(uploadfile, chunk?.start, chunk?.end)
       }
       const sub = this.toObserverble(res).subscribe(ob)
       return () => sub.unsubscribe()

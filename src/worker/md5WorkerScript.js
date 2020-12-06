@@ -14,7 +14,7 @@ export default `
     if (!data) {
       return
     }
-    console.time('computehash')
+    console.time('computehash-worker')
     var file = data
     var currentChunk = 0
     var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice
@@ -34,7 +34,7 @@ export default `
         var md5 = spark.end()
         console.info('computed hash', md5)
         $this.postMessage(md5)
-        console.timeEnd('computehash')
+        console.timeEnd('computehash-worker')
       }
     }
     if (!isArrayBuffer) {

@@ -1,8 +1,8 @@
 import { UploadTask } from '../modules/UploadTask'
 import TaskHandler from './TaskHandler'
 import { ID, StringKeyObject, EventType, StatusCode } from '../../types'
-import { forkJoin, from, Observable, Subscriber, of, Subject, Subscription, throwError, BehaviorSubject } from 'rxjs'
-import { tap, map, concatMap, filter, catchError, mergeMap, mapTo, switchMap, combineAll, reduce } from 'rxjs/operators'
+import { forkJoin, from, Observable, Subscriber, of, Subject, Subscription, throwError } from 'rxjs'
+import { tap, map, concatMap, filter, catchError, mergeMap, mapTo, switchMap, reduce } from 'rxjs/operators'
 import { ajax, AjaxResponse } from 'rxjs/ajax'
 import { retryWithDelay } from '../../operators'
 import { UploadFile, FileChunk } from '../modules'
@@ -10,16 +10,12 @@ import { assert } from '../../utils'
 
 export class CommonsTaskHandler extends TaskHandler {
   private readonly progressSubject: Subject<ProgressPayload> = new Subject()
-  private readonly actionSubject: BehaviorSubject<{ type: string }> = new BehaviorSubject({ type: 'resume' })
-  private readonly resume$ = this.actionSubject.pipe(filter(({ type }) => type === 'resume'))
-  private readonly pause$ = this.actionSubject.pipe(filter(({ type }) => type === 'pause'))
-  private readonly retry$ = this.actionSubject.pipe(filter(({ type }) => type === 'retry'))
 
   private upload$: Observable<any> | null = null
   private uploadSubscription: Subscription | null = null
 
   pause (): void {
-    this.uploadSubscription = this.uploadSubscription?.unsubscribe() || null
+    this.uploadSubscription = this.uploadSubscription?.unsubscribe() as any
     const { task } = this
     console.log('CommonTaskHandler -> pause -> task', task)
     task.fileList?.forEach((file) => {
@@ -29,10 +25,10 @@ export class CommonsTaskHandler extends TaskHandler {
       //     chunk.status === StatusCode.Uploading ? StatusCode.Pause : chunk.status || StatusCode.Pause,
       //   )
       // })
-      let status = file.status === StatusCode.Uploading ? StatusCode.Pause : file.status || StatusCode.Pause
+      let status = file.status === StatusCode.Complete ? file.status : StatusCode.Pause
       this.changeUploadFileStatus(file, status)
     })
-    task.status = task.status === StatusCode.Uploading ? StatusCode.Pause : task.status
+    task.status = task.status === StatusCode.Complete ? task.status : StatusCode.Pause
     this.presistTaskOnly(this.task)
 
     this.emit(EventType.TaskPaused, this.task)
@@ -49,7 +45,7 @@ export class CommonsTaskHandler extends TaskHandler {
   }
 
   abort (): void {
-    this.upload$ = this.uploadSubscription = this.uploadSubscription?.unsubscribe() || null
+    this.upload$ = this.uploadSubscription = this.uploadSubscription?.unsubscribe() as any
     this.emit(EventType.TaskCanceled, this.task)
   }
 
@@ -102,24 +98,24 @@ export class CommonsTaskHandler extends TaskHandler {
       )
     }
 
-    this.uploadSubscription = this.uploadSubscription?.unsubscribe() || null
-    this.uploadSubscription = this.upload$
-      .subscribe({
-        next: (...args) => {
-          console.log('🚀 ~  上传任务 next ', ...args)
-        },
-        error: (err: Error) => {
-          console.log('🚀 ~ 上传任务出错', err)
-          this.changeUplotaTaskStatus(this.task, StatusCode.Error)
-          this.emit(EventType.TaskError, err)
-        },
-        complete: () => {
-          console.log('🚀 ~ 上传任务完成', this.task)
-          this.changeUplotaTaskStatus(this.task, StatusCode.Complete)
-          this.emit(EventType.TaskComplete)
-        },
-      })
-      .add(this.handleProgress().subscribe())
+    this.uploadSubscription = this.uploadSubscription?.unsubscribe() as any
+    this.uploadSubscription = this.upload$.subscribe({
+      next: (...args) => {
+        console.log('🚀 ~  上传任务 next ', ...args)
+      },
+      error: (err: Error) => {
+        console.log('🚀 ~ 上传任务出错', err)
+        this.changeUplotaTaskStatus(this.task, StatusCode.Error)
+        this.emit(EventType.TaskError, this.task, err)
+      },
+      complete: () => {
+        console.log('🚀 ~ 上传任务完成', this.task)
+        this.changeUplotaTaskStatus(this.task, StatusCode.Complete)
+        this.emit(EventType.TaskComplete, this.task)
+        this.removeTaskFromStroage(this.task)
+      },
+    })
+    this.uploadSubscription.add(this.handleProgress().subscribe())
   }
 
   private uploadFile (uploadFile: UploadFile): Observable<{ uploadFile: UploadFile; chunkResponses: ChunkResponse[] }> {
@@ -132,6 +128,7 @@ export class CommonsTaskHandler extends TaskHandler {
 
         const should = !!uploaderOptions.computeFileHash && !uploadFile.hash
         if (!should) {
+          console.log('存在hash或不用计算')
           return of(uploadFile)
         }
 
@@ -141,7 +138,8 @@ export class CommonsTaskHandler extends TaskHandler {
         const afterCompute = fileHashComputed?.(uploadFile, task) || Promise.resolve()
         return from(beforeCompute).pipe(
           concatMap(() => {
-            return this.computeFileHash(uploadFile.raw).pipe(map((hash) => Object.assign(uploadFile, { hash })))
+            // TODO
+            return this.computeFileMd5ByWorker(uploadFile).pipe(map((hash) => Object.assign(uploadFile, { hash })))
           }),
           concatMap((uploadFile) => from(afterCompute).pipe(mapTo(uploadFile))),
         )
@@ -281,7 +279,7 @@ export class CommonsTaskHandler extends TaskHandler {
           method: requestOptions.method,
           progressSubscriber,
           withCredentials: !!requestOptions.withCredentials,
-          timeout: requestOptions.timeout || 30000,
+          timeout: requestOptions.timeout || 0,
         }).pipe(retryWithDelay(maxRetryTimes, retryInterval)),
       ),
     )
@@ -323,7 +321,7 @@ export class CommonsTaskHandler extends TaskHandler {
           concatMap(() => this.readFile(uploadFile, chunk)),
           concatMap((data: Blob) => from(afterRead).pipe(mapTo(data))),
           concatMap((data: Blob) => {
-            let hash$ = shouldComputeChunkHash ? this.computeFileHash(data, 'md5') : of(chunk.hash || '')
+            const hash$ = shouldComputeChunkHash ? this.computeFileMd5ByWorker(data) : of(chunk.hash || '')
             return hash$.pipe(map((hash: string) => Object.assign(chunk, { hash, data })))
           }),
           concatMap((chunk: FileChunk) => {
@@ -357,20 +355,17 @@ export class CommonsTaskHandler extends TaskHandler {
     const reduceFn = (res: number = 0, cur: number = 0) => res + cur
     return this.progressSubject.pipe(
       tap(({ chunk, file, event }) => {
-        let chunkSize = chunk.data?.size || chunk.size || event.total
+        const chunkSize = chunk.data?.size || chunk.size || event.total
         const loaded = Math.min(chunkSize, event.loaded || 0)
         const chunkList: FileChunk[] = file.chunkList || []
-        chunkList![chunk.index]!.uploaded = loaded
-        chunk.uploaded = loaded
+        chunkList[chunk.index].uploaded = chunk.uploaded = loaded
         chunk.progress = Math.max(Math.round((loaded / chunkSize) * 100), chunk.progress || 0)
-        // chunk.status = StatusCode.Uploading
 
         let fileUploaded: number = chunkList.map(({ uploaded }) => uploaded || 0).reduce(reduceFn)
         let fileProgress: number = Math.round((fileUploaded / file.size) * 100)
         fileProgress = Math.max(Math.min(fileProgress, 100), file.progress || 0)
         file.uploaded = fileUploaded
         file.progress = fileProgress
-        // file.status = StatusCode.Uploading
 
         let taskLastProgress = this.task.progress
         if (this.task.fileIDList?.length === 1) {
@@ -380,23 +375,25 @@ export class CommonsTaskHandler extends TaskHandler {
           let taskProgress = Math.round(progressTotal / this.task.fileIDList!.length)
           this.task.progress = Math.max(taskProgress, this.task.progress || 0)
         }
-        // this.task.status = StatusCode.Uploading
 
-        if (this.task.progress > taskLastProgress) {
-          console.log('presistTaskOnly....')
-          this.presistTaskOnly(this.task)
-        }
+        this.task.progress > taskLastProgress && this.presistTaskOnly(this.task)
+
         this.emit(EventType.TaskProgress, this.task.progress, this.task, file)
-        console.log(' progress', chunk.progress, file.progress, this.task.progress)
+        console.log(
+          `progress - ${this.task.name} - ${file.name} - ${chunk.index}`,
+          chunk.progress,
+          file.progress,
+          this.task.progress,
+        )
       }),
     )
   }
 
   private putToTaskFileList (uploadFile: UploadFile): void {
-    if (!!uploadFile) {
+    if (uploadFile) {
       this.task.fileList = this.task.fileList || []
-      let index = this.task.fileList.findIndex((f) => f.id === uploadFile.id)
-      index !== -1 && this.task.fileList.splice(index, 1, uploadFile)
+      const index: number = this.task.fileList.findIndex((f) => f.id === uploadFile.id)
+      index !== -1 ? this.task.fileList.splice(index, 1, uploadFile) : this.task.fileList.push(uploadFile)
     }
   }
 

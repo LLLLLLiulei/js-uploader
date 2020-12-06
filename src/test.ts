@@ -48,7 +48,6 @@ const uploader = Uploader.create({
       // return 'http://10.2.45.100:2081/catalogs/1102/files/upload'
       return 'http://ecm.test.work.zving.com/catalogs/4751/files/upload'
     },
-    method: 'POST',
     headers: function (task: UploadTask, uploadfile: UploadFile) {
       // console.log('requestHeaders', task, uploadfile)
       return {
@@ -93,16 +92,15 @@ const uploader = Uploader.create({
   fileHashComputed (file: UploadFile, task: UploadTask) {
     // console.log('fileHashComputed -> file', file)
   },
-  readFileFn: function (task: UploadTask, uploadfile: UploadFile, chunk: FileChunk) {
-    console.log(uploadfile, task, chunk)
+  readFileFn: function (task: UploadTask, uploadfile: UploadFile, start?: number, end?: number) {
     return new Promise((resolve, reject) => {
-      resolve(uploadfile.raw?.slice(chunk.start, chunk.end))
+      resolve(uploadfile.raw?.slice(start, end))
     })
   },
   // unpresistTaskWhenSuccess: false,
   // fsAdapter:{},
-  autoUpload: false,
-  singleTask: true,
+  autoUpload: true,
+  singleTask: false,
   skipFileWhenUploadError: false,
   chunkSize: 1024 * 1024,
   computeFileHash: true,
@@ -155,39 +153,41 @@ const appendHtml = (task: UploadTask) => {
 
   requestAnimationFrame((_) => {
     $('#task-container').append(html)
+    setTimeout(() => {
+      $(`#${task.id} .uploadBtn`).on('click', (e: JQuery.ClickEvent) => {
+        let taskID = $(e.target).attr('taskID') as string
+        let task = taskMap[taskID]
+        uploader.upload(task)
+      })
+      $(`#${task.id}  .pauseBtn`).on('click', (e: JQuery.ClickEvent) => {
+        let taskID = $(e.target).attr('taskID') as string
+        let task = taskMap[taskID]
+        uploader.pause(task)
+      })
+      $(`#${task.id}  .resumeBtn`).on('click', (e: JQuery.ClickEvent) => {
+        let taskID = $(e.target).attr('taskID') as string
+        let task = taskMap[taskID]
+        uploader.resume(task)
+      })
+      $(`#${task.id}  .retryBtn`).on('click', (e: JQuery.ClickEvent) => {
+        let taskID = $(e.target).attr('taskID') as string
+        let task = taskMap[taskID]
+        uploader.retry(task)
+      })
+      $(`#${task.id}  .cancelBtn`).on('click', (e: JQuery.ClickEvent) => {
+        let taskID = $(e.target).attr('taskID') as string
+        let task = taskMap[taskID]
+        uploader.cancel(task)
+      })
+    }, 500)
   })
-
-  setTimeout(() => {
-    $(`#${task.id} .uploadBtn`).on('click', (e: JQuery.ClickEvent) => {
-      let taskID = $(e.target).attr('taskID') as string
-      let task = taskMap[taskID]
-      uploader.upload(task)
-    })
-    $(`#${task.id}  .pauseBtn`).on('click', (e: JQuery.ClickEvent) => {
-      let taskID = $(e.target).attr('taskID') as string
-      let task = taskMap[taskID]
-      uploader.pause(task)
-    })
-    $(`#${task.id}  .resumeBtn`).on('click', (e: JQuery.ClickEvent) => {
-      let taskID = $(e.target).attr('taskID') as string
-      let task = taskMap[taskID]
-      uploader.resume(task)
-    })
-    $(`#${task.id}  .retryBtn`).on('click', (e: JQuery.ClickEvent) => {
-      let taskID = $(e.target).attr('taskID') as string
-      let task = taskMap[taskID]
-      uploader.retry(task)
-    })
-    $(`#${task.id}  .cancelBtn`).on('click', (e: JQuery.ClickEvent) => {
-      let taskID = $(e.target).attr('taskID') as string
-      let task = taskMap[taskID]
-      uploader.cancel(task)
-    })
-  }, 500)
 }
 uploader.on(EventType.TaskAdd, appendHtml)
 uploader.on(EventType.TaskRestore, appendHtml)
 uploader.on(EventType.TaskUploadStart, (task: UploadTask) => {
+  $(`#${task.id} .task-status`).html(task.status)
+})
+uploader.on(EventType.TaskWaiting, (task: UploadTask) => {
   $(`#${task.id} .task-status`).html(task.status)
 })
 uploader.on(EventType.TaskProgress, (progress: number, task: UploadTask, file: UploadFile) => {
