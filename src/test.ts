@@ -6,12 +6,21 @@ import * as $ from 'jquery'
 import { ajax } from 'rxjs/ajax'
 import { Observable } from 'rxjs'
 
+// import md5workerContent from './worker/md5Worker'
+// import './shared/sparkMD5Factory'
+// console.log('🚀 ~ file: test.ts ~ line 10 ~ SparkMD5', SparkMD5)
+
+import { md5WorkerPool } from './worker'
+import { ajaxGetJSON, ajaxPost } from 'rxjs/internal/observable/dom/AjaxObservable'
+
+Object.assign(window, { md5WorkerPool })
+
 let tokenMap = {}
 const uploader = Uploader.create({
-  ossConfig: {
-    enable: true,
-    provider: 'qiniu',
-    objectKeyGenerator (file: UploadFile) {
+  ossOptions: {
+    enable: false,
+    type: 'qiniu',
+    keyGenerator (file: UploadFile) {
       console.log('objectKeyGenerator -> objectKeyGenerator', arguments)
       return tokenMap[file.id].key
     },
@@ -33,31 +42,34 @@ const uploader = Uploader.create({
       })
     },
   },
-  serverURL: function (task: UploadTask, uploadfile: UploadFile) {
-    // console.log('serverURL', task, uploadfile)
-    // return 'http://10.2.45.100:2081/catalogs/1102/files/upload'
-    return 'http://ecm.test.work.zving.com/catalogs/4751/files/upload'
-  },
-  requestHeaders: function (task: UploadTask, uploadfile: UploadFile) {
-    // console.log('requestHeaders', task, uploadfile)
-    return {
-      CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
-      // CMPID: 'c336c544d2ea41c9ae9d93efa0e638a0',
-      // TOKEN:
-      //   'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwMzYwOTcyNywiaWF0IjoxNjAzMDA0OTI3LCJqdGkiOiIzZjZlNjZkMWIxNTU0NjBiODY2MDFkYzQxNTk3YWQ3YiJ9.BVL6a79QFS0NQJFzUZbnFodOIk6AINdIntwBQq96ZsQ',
-      TOKEN:
-        'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwNDY0MTU2NiwiaWF0IjoxNjA0MDM2NzY2LCJqdGkiOiI1NjFjZWYwODkxZTM0MDVmYmQxNDI5OTA1YWM4ZTg2YSJ9.vHhpeDkrPTLCsx3QC0XpIcSk8NagEiR4dDcTTTksX_U',
-      GUID: 'b1da407ce0a5408b847f4151d41783ff',
-    }
-  },
-  requestParams: function (task: UploadTask, uploadfile: UploadFile) {
-    // console.log('requestParams', task, uploadfile)
-    return {
-      chunkNumber: 1,
-      identifier: uploadfile.id,
-      filename: uploadfile.name,
-      totalChunks: uploadfile.chunkIDList?.length,
-    }
+  requestOptions: {
+    url: function (task: UploadTask, uploadfile: UploadFile) {
+      // console.log('serverURL', task, uploadfile)
+      // return 'http://10.2.45.100:2081/catalogs/1102/files/upload'
+      return 'http://ecm.test.work.zving.com/catalogs/4751/files/upload'
+    },
+    method: 'POST',
+    headers: function (task: UploadTask, uploadfile: UploadFile) {
+      // console.log('requestHeaders', task, uploadfile)
+      return {
+        CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
+        // CMPID: 'c336c544d2ea41c9ae9d93efa0e638a0',
+        // TOKEN:
+        //   'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwMzYwOTcyNywiaWF0IjoxNjAzMDA0OTI3LCJqdGkiOiIzZjZlNjZkMWIxNTU0NjBiODY2MDFkYzQxNTk3YWQ3YiJ9.BVL6a79QFS0NQJFzUZbnFodOIk6AINdIntwBQq96ZsQ',
+        TOKEN:
+          'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwNzc2NDI3NCwiaWF0IjoxNjA3MTU5NDc0LCJqdGkiOiJkODM5ZmI5YWY5M2M0NzVlODUwODE1YmUxM2M3YzQxOSJ9.G9iSOi6JQRXYQRtXpWuiVF7lfWs6xv7IsZZUDCLb32A',
+        GUID: 'b1da407ce0a5408b847f4151d41783ff',
+      }
+    },
+    body: function (task: UploadTask, uploadfile: UploadFile) {
+      // console.log('requestParams', task, uploadfile)
+      return {
+        chunkNumber: 1,
+        identifier: uploadfile.id,
+        filename: uploadfile.name,
+        totalChunks: uploadfile.chunkIDList?.length,
+      }
+    },
   },
   beforeFileHashCompute (file: UploadFile, task: UploadTask) {
     // return new Promise((resolve, reejct) => {
@@ -91,11 +103,11 @@ const uploader = Uploader.create({
   // fsAdapter:{},
   autoUpload: false,
   singleTask: true,
-  skipFileWhenUploadError: true,
+  skipFileWhenUploadError: false,
   chunkSize: 1024 * 1024,
-  computeFileHash: false,
+  computeFileHash: true,
   computeChunkHash: true,
-  resumable: false,
+  resumable: true,
   chunkConcurrency: 2,
   taskConcurrency: 2,
   maxRetryTimes: 1,
@@ -141,7 +153,10 @@ const appendHtml = (task: UploadTask) => {
     </div>
   `
 
-  $('#task-container').append(html)
+  requestAnimationFrame((_) => {
+    $('#task-container').append(html)
+  })
+
   setTimeout(() => {
     $(`#${task.id} .uploadBtn`).on('click', (e: JQuery.ClickEvent) => {
       let taskID = $(e.target).attr('taskID') as string
@@ -223,3 +238,7 @@ setTimeout(() => {
 console.log(Object.keys(EventType))
 
 Object.assign(window, { up: uploader })
+
+ajaxGetJSON('http://ecm.test.work.zving.com/heartbeat').subscribe(console.log)
+
+// ajaxPost('http://ecm.test.work.zving.com/catalogs/4751/files/upload').subscribe(console.log)

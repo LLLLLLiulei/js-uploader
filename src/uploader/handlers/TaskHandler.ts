@@ -1,8 +1,8 @@
 import { UploadTask } from '../modules/UploadTask'
-import { Observable, Subscriber, of, Subscription, from, combineLatest, forkJoin } from 'rxjs'
+import { Observable, Subscriber, of, from, forkJoin } from 'rxjs'
 import { ID, StringKeyObject, StatusCode } from '../../types'
 import { fileReader } from '../helpers/brower/file-reader'
-import { mergeAll, tap, concatMap, mapTo, filter, map } from 'rxjs/operators'
+import { tap, concatMap, mapTo, filter, map } from 'rxjs/operators'
 import { FileStore, UploadFile, FileChunk, Storage } from '../modules'
 import { UploaderOptions } from '..'
 import Base from '../Base'
@@ -27,7 +27,7 @@ export default abstract class TaskHandler extends Base {
     if (!file) {
       return of('')
     }
-    return Observable.create((ob: Subscriber<string>) => {
+    return new Observable((ob: Subscriber<string>) => {
       algorithm = algorithm || 'md5'
       const sparkMd5 = new SparkMD5.ArrayBuffer()
       const fileReader = new FileReader()
@@ -53,15 +53,18 @@ export default abstract class TaskHandler extends Base {
   }
 
   protected getServerURL (uploadfile: UploadFile, chunk: FileChunk): Observable<string> {
-    return this.createObserverble(this.uploaderOptions.serverURL, this.task, uploadfile, chunk)
+    return this.createObserverble(this.uploaderOptions.requestOptions.url, this.task, uploadfile, chunk)
   }
 
   protected getRequestHeaders (uploadfile: UploadFile): Observable<StringKeyObject | undefined> {
-    return this.createObserverble(this.uploaderOptions.requestHeaders, this.task, uploadfile)
+    return this.createObserverble(this.uploaderOptions.requestOptions.headers, this.task, uploadfile)
   }
 
-  protected getRequestParams (uploadfile: UploadFile): Observable<StringKeyObject | undefined> {
-    return this.createObserverble(this.uploaderOptions.requestParams, this.task, uploadfile)
+  protected getRequestParams (
+    uploadfile: UploadFile,
+    baseParams: StringKeyObject,
+  ): Observable<StringKeyObject | undefined> {
+    return this.createObserverble(this.uploaderOptions.requestOptions.body, this.task, uploadfile, baseParams)
   }
 
   protected computeHashWhen (blob: Blob | undefined, algorithm: string, condition: boolean): Observable<string> {
@@ -69,7 +72,7 @@ export default abstract class TaskHandler extends Base {
   }
 
   protected getUploadFileByID (id: ID): Observable<UploadFile | null> {
-    return Observable.create((ob: Subscriber<UploadFile | null>) => {
+    return new Observable((ob: Subscriber<UploadFile | null>) => {
       let uploadFile = FileStore.get(id)
       let file$: Observable<UploadFile | null>
       if (uploadFile) {
@@ -107,10 +110,10 @@ export default abstract class TaskHandler extends Base {
                 ),
               )
             }
-            upfile.status = upfile.status === StatusCode.Success ? upfile.status : StatusCode.Pause
+            upfile.status = upfile.status === StatusCode.Complete ? upfile.status : StatusCode.Pause
             // upfile.status = upfile.status === StatusCode.Uploading ? StatusCode.Pause : upfile.status
-            upfile.progress = upfile.status === StatusCode.Success ? 100 : upfile.progress
-            return source.length ? forkJoin(...source).pipe(mapTo(upfile)) : of(upfile)
+            upfile.progress = upfile.status === StatusCode.Complete ? 100 : upfile.progress
+            return source.length ? forkJoin(source).pipe(mapTo(upfile)) : of(upfile)
           }),
           tap((upfile) => {
             upfile && FileStore.add(upfile)
@@ -123,7 +126,7 @@ export default abstract class TaskHandler extends Base {
   }
 
   protected readFile (uploadfile: UploadFile, chunk: FileChunk): Observable<Blob> {
-    return Observable.create((ob: Subscriber<Blob>) => {
+    return new Observable((ob: Subscriber<Blob>) => {
       let reader = this.uploaderOptions.readFileFn
       let res: Promise<Blob> | Blob
       if (typeof reader === 'function') {

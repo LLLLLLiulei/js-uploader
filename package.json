@@ -38,7 +38,6 @@
     "rxjs": "^6.6.2",
     "rxjs-tslint-rules": "^4.34.3",
     "source-map-loader": "^1.0.1",
-    "spark-md5": "^3.0.1",
     "ts-loader": "^8.0.2",
     "ts-node": "^8.10.2",
     "tslib": "^2.0.1",

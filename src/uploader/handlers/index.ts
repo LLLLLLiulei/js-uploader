@@ -6,14 +6,13 @@ import { UploaderOptions } from '../Uploader'
 
 export function handle (task: UploadTask, uploaderOptions: UploaderOptions): TaskHandler {
   let handler: TaskHandler
-  if (!uploaderOptions.ossConfig?.enable) {
+  if (!uploaderOptions?.ossOptions?.enable) {
     handler = new CommonsTaskHandler(task, uploaderOptions)
   } else {
-    switch (uploaderOptions.ossConfig.provider) {
+    switch (uploaderOptions.ossOptions.type) {
       case 'qiniu':
         handler = new QiniuOSSTaskHandler(task, uploaderOptions)
         break
-      // ...
       default:
         handler = new QiniuOSSTaskHandler(task, uploaderOptions)
         break

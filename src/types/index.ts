@@ -23,7 +23,8 @@ export enum StatusCode {
   Uploading = 'uploading',
   Pause = 'pause',
   Error = 'error',
-  Success = 'success',
+  // Success = 'success',
+  Complete = 'complete',
 }
 
 enum TaskExtraStatus {
@@ -43,7 +44,7 @@ export type ID = string | number
 
 export type Protocol = 'http:' | 'https:'
 
-export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'get' | 'post' | 'put' | 'patch' | 'delete'
 
 export type Domain = string | { http: string; https: string }
 

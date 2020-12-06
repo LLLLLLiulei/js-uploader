@@ -19,7 +19,7 @@ export class EventEmitter {
     this.addListener(type, listener, true)
   }
 
-  off (type: string, listener: EventListener): void {
+  off (type: string, listener?: EventListener): void {
     this.removeListener(type, listener)
   }
 
@@ -36,12 +36,15 @@ export class EventEmitter {
     map.set(listener, sub)
   }
 
-  removeListener (type: string, listener: EventListener): void {
+  removeListener (type: string, listener?: EventListener): void {
     let map: WeakMap<EventListener, Subscription> = this.getSubscriptionMap(type)
-    let sub = map.get(listener)
-    if (sub) {
-      sub.unsubscribe()
-      map.delete(listener)
+    if (listener) {
+      let sub = map.get(listener)
+      if (sub) {
+        sub.unsubscribe()
+        map.delete(listener)
+      }
+    } else {
     }
   }
 

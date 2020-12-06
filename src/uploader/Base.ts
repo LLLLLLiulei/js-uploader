@@ -9,12 +9,6 @@ export default class Base extends EventEmitter {
     super()
   }
 
-  protected throwErrorWhen (condition: boolean, error: string = 'throwErrorWhen') {
-    if (condition) {
-      throw new Error(error)
-    }
-  }
-
   protected toObserverble<T> (input: T | Promise<T>): Observable<T> {
     return input && input instanceof Promise ? from(input) : of(input)
   }
