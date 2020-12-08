@@ -87,12 +87,7 @@ export default class Base extends EventEmitter {
       let obs = task.fileIDList.map((id) => from(this.presistUploadFile(FileStore.get(id))))
       const uptask: UploadTask = Object.assign({}, task)
       delete uptask.fileList
-      return forkJoin(...obs).pipe(
-        concatMap(() => from(Storage.UploadTask.setItem(String(uptask.id), uptask))),
-        tap(() => {
-          console.warn(`save task ${uptask.name} end`)
-        }),
-      )
+      return forkJoin(obs).pipe(concatMap(() => from(Storage.UploadTask.setItem(String(uptask.id), uptask))))
     })
     return forkJoin(job$)
   }

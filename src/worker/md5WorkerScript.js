@@ -1,11 +1,6 @@
 export default `
 (function () {
-  var $this
-  try {
-    $this = window
-  } catch (e) {
-    $this = self
-  }
+  var $this = typeof window == 'undefined' ? self : window
   var spark = new $this.SparkMD5.ArrayBuffer()
   console.log($this, $this.SparkMD5)
   $this.onmessage = function (e) {

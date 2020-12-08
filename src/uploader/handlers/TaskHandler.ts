@@ -1,5 +1,5 @@
 import { UploadTask } from '../modules/UploadTask'
-import { Observable, Subscriber, of, from, forkJoin } from 'rxjs'
+import { Observable, Subscriber, of, from, forkJoin, Subscription } from 'rxjs'
 import { ID, StringKeyObject, StatusCode } from '../../types'
 import { fileReader } from '../helpers/brower/file-reader'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
@@ -18,11 +18,11 @@ export default abstract class TaskHandler extends Base {
     this.uploaderOptions = uploaderOptions
   }
 
-  abstract handle (): void
-  abstract pause (): void
-  abstract resume (): void
-  abstract retry (): void
-  abstract abort (): void
+  abstract handle (): this
+  abstract pause (): this
+  abstract resume (): this
+  abstract retry (): this
+  abstract abort (): this
 
   protected computeFileHash (file: Blob | undefined, algorithm?: string): Observable<string> {
     if (!file) {
@@ -50,11 +50,22 @@ export default abstract class TaskHandler extends Base {
   protected computeFileMd5ByWorker (uploadFile: UploadFile): Observable<string>
   protected computeFileMd5ByWorker (blob: Blob): Observable<string>
   protected computeFileMd5ByWorker (data: UploadFile | Blob): Observable<string> {
-    if (data instanceof Blob) {
-      return from(md5WorkerPool.execute(data))
-    } else {
-      return this.readFile(data).pipe(switchMap((data: Blob) => from(md5WorkerPool.execute(data))))
-    }
+    return new Observable((ob: Subscriber<string>) => {
+      let result: any
+      let sub: Nullable<Subscription>
+      if (data instanceof Blob) {
+        sub = from((result = md5WorkerPool.execute(data).promise!)).subscribe(ob)
+      } else {
+        sub = this.readFile(data)
+          .pipe(switchMap((data: Blob) => (result = md5WorkerPool.execute(data)).promise!))
+          .subscribe(ob)
+      }
+      return () => {
+        result?.cancel?.()
+        sub?.unsubscribe()
+        sub = null
+      }
+    })
   }
 
   protected toFormData (params: StringKeyObject): FormData {
@@ -82,10 +93,10 @@ export default abstract class TaskHandler extends Base {
     return condition ? this.computeFileHash(blob, algorithm) : of('')
   }
 
-  protected getUploadFileByID (id: ID): Observable<UploadFile | null> {
-    return new Observable((ob: Subscriber<UploadFile | null>) => {
+  protected getUploadFileByID (id: ID): Observable<Nullable<UploadFile>> {
+    return new Observable((ob: Subscriber<Nullable<UploadFile>>) => {
       let uploadFile = FileStore.get(id)
-      let file$: Observable<UploadFile | null>
+      let file$: Observable<Nullable<UploadFile>>
       if (uploadFile) {
         file$ = of(uploadFile)
       } else {

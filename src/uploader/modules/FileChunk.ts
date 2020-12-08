@@ -1,6 +1,5 @@
 import { ChunkStatus, StringKeyObject, StatusCode, ID } from '../../types'
 import { idGenerator } from '../../utils'
-import { stat } from 'fs'
 
 export class FileChunk {
   id: ID
