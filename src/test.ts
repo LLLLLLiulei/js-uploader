@@ -96,12 +96,12 @@ const uploader = Uploader.create({
   // unpresistTaskWhenSuccess: false,
   // fsAdapter:{},
   autoUpload: false,
-  singleFileTask: false,
+  singleFileTask: true,
   skipFileWhenUploadError: false,
   chunkSize: 1024 * 1024,
   computeFileHash: true,
   computeChunkHash: true,
-  resumable: false,
+  resumable: true,
   chunkConcurrency: 20,
   taskConcurrency: 5,
   maxRetryTimes: 1,
@@ -134,7 +134,9 @@ const appendHtml = (task: UploadTask) => {
   let html = `
     <div id="${task.id}" style="margin:10px;padding:10px;border:1px solid;width;100%">
       <div style="width:100%;display:flex;text-align:center">
-        <div style="width:50%;text-align:left">${task.name}</div>
+        <div style="width:30%;text-align:left">${task.name}</div>
+        <div style="width:5%;text-align:left">${task.type}</div>
+        <div style="width:10%;text-align:left">${task.filSize}</div>
         <div style="width:10%" class="task-progress">${task.progress}</div>
         <div style="width:10%" class="task-status">${task.status}</div>
         <div style="width:30%">

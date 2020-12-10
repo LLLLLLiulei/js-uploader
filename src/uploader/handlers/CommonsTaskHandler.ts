@@ -26,7 +26,7 @@ import {
 } from 'rxjs'
 import { tap, map, concatMap, filter, catchError, mergeMap, mapTo, switchMap, reduce } from 'rxjs/operators'
 import { ajax, AjaxResponse } from 'rxjs/ajax'
-import { retryWithDelay } from '../../operators'
+import { retryWithDelay } from '../../operators/retry-with-delay'
 import { assert } from '../../utils/assert'
 import { chunkFactory } from '../helpers/chunk-factory'
 

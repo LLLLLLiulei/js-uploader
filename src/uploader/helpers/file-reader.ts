@@ -2,7 +2,7 @@ import { UploadFile } from '../../types'
 
 export const fileReader = (uploadfile: UploadFile, start?: number, end?: number): Blob | Promise<Blob> => {
   return new Promise((resolve, reject) => {
-    let raw: Blob | undefined = uploadfile.raw
+    let raw: Nullable<Blob> = uploadfile.raw
     if (!raw) {
       return reject(new Error('no raw!'))
     }

@@ -1,6 +1,4 @@
-// import * as localforage from 'localforage'
-import 'localforage'
-import localforage from 'localforage/src/localforage'
+import * as localforage from 'localforage'
 import { extendPrototype as extendStartswith } from 'localforage-startswith'
 import { extendPrototype as extendRemoveitems } from 'localforage-removeitems'
 import { extendPrototype as extendSetitems } from 'localforage-setitems'
@@ -10,7 +8,7 @@ interface IStorage extends LocalForage {
   list: () => Promise<unknown[]>
 }
 
-function extendList (instance: LocalForage) {
+function extendList (instance: LocalForage): IStorage {
   return Object.assign(instance, {
     list (): Promise<unknown[]> {
       return new Promise((resolve, reject) => {
@@ -33,7 +31,7 @@ function createInstance (opts: LocalForageOptions): IStorage {
   extendSetitems(instance)
   extendGetitems(instance)
   extendList(instance)
-  return instance
+  return instance as IStorage
 }
 
 const INSTANCE_NAME = 'uploader'

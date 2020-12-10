@@ -7,6 +7,7 @@ export enum EventType {
   FileSkip = 'FileSkip',
 
   TaskCreated = 'TaskCreated',
+  TaskUpdate = 'TaskUpdate',
   TaskRestore = 'TaskRestore',
   TaskPresist = 'TaskPresist',
   TaskWaiting = 'TaskWaiting',
@@ -43,7 +44,7 @@ export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'get' 
 
 export type Domain = string | { http: string; https: string }
 
-export type OSS = 'qiniu'
+export type OSS = false | 'qiniu'
 
 export type StringKeyObject = { [key: string]: any }
 
@@ -58,43 +59,44 @@ export interface FileChunk {
   start: number
   end: number
   index: number
-  data?: Blob
-  hash?: string
-  uploaded?: number
-  size?: number
-  progress?: number
-  status?: ChunkStatus
-  response?: StringKeyObject
+  data: Nullable<Blob>
+  hash: string
+  uploaded: number
+  size: number
+  progress: number
+  status: ChunkStatus
+  response: StringKeyObject
 }
 
 export interface UploadFile {
   id: ID
-  hash?: string
+  hash: string
   name: string
   type: string
   size: number
   relativePath: string
-  path?: string
+  path: string
   lastModified: number
-  raw?: File | Blob
+  raw: Nullable<Blob>
 
-  uploaded?: number
-  chunkIDList?: ID[]
-  chunkList?: FileChunk[]
-  progress?: number
-  status?: FileStatus
-  response?: StringKeyObject
-  extraInfo?: StringKeyObject
+  uploaded: number
+  chunkIDList: ID[]
+  chunkList: FileChunk[]
+  progress: number
+  status: FileStatus
+  response: StringKeyObject
+  extraInfo: StringKeyObject
 }
 
 export interface UploadTask {
   id: ID
   name: string
-  type?: 'file' | 'dir'
+  type: 'file' | 'dir'
   fileIDList: ID[]
-  fileList?: UploadFile[]
-  extraInfo?: StringKeyObject
-  oss?: OSS
+  fileList: UploadFile[]
+  filSize: number
+  extraInfo: StringKeyObject
+  oss: OSS
   progress: number
   status: TaskStatus
   addTime: Date

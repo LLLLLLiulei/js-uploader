@@ -3,9 +3,10 @@ import { FileStore } from '../modules/FileStore'
 import { normalizePath } from '../../utils/normalize-path'
 import { StatusCode, UploadFile } from '../../types'
 
-export const fileFactory = (file: File): UploadFile[] => {
+export const fileFactory = (file: File): UploadFile => {
   const uploadFile: UploadFile = {
     id: 'file-' + idGenerator(),
+    hash: '',
     name: file.name,
     size: file.size,
     type: file.type,
@@ -23,5 +24,5 @@ export const fileFactory = (file: File): UploadFile[] => {
     extraInfo: {},
   }
   FileStore.add(uploadFile)
-  return [uploadFile]
+  return uploadFile
 }

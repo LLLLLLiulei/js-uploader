@@ -419,7 +419,7 @@ export class Uploader extends Base {
         } else if (typeof fileFilter === 'function') {
           ignored = !fileFilter(fileName, file)
         }
-        !ignored && filelist.push(...fileFactory(file))
+        !ignored && filelist.push(fileFactory(file))
       })
       console.log('Uploader -> addFile -> filelist', filelist)
       const tasks = this.generateTask(...filelist)
@@ -469,7 +469,7 @@ export class Uploader extends Base {
               ignored = !fileFilter(file.name, file)
             }
             if (!ignored) {
-              filelist.push(...fileFactory(file))
+              filelist.push(fileFactory(file))
             } else {
               // 文件被忽略事件
               this.emit(EventType.FileIgnored, file)
@@ -490,33 +490,37 @@ export class Uploader extends Base {
     const taskList: UploadTask[] = []
     const ossOptions = this.options?.ossOptions
     fileList.forEach((file: UploadFile) => {
-      let task: Nullable<UploadTask> = null
       let pos = file.relativePath.indexOf('/')
+      let { singleFileTask } = this.options
+      let newTask: Nullable<UploadTask> = null
       let inFolder = !this.options.singleFileTask && pos !== -1
       if (!inFolder) {
-        task = taskFactory(file)
-        task.name = file.name
+        newTask = taskFactory(file, singleFileTask)
       } else {
         let parentPath: string = file.relativePath.substring(0, pos)
         let existsTask: UploadTask | undefined = this.taskQueue.find((tsk) => {
           return tsk.fileIDList.some((id) => FileStore.get(id)?.relativePath.startsWith(parentPath))
         })
         if (existsTask) {
+          // TODO
           existsTask.fileIDList.push(file.id)
+          existsTask.filSize += file.size
           !taskList.some((tsk) => tsk.id === existsTask?.id) && taskList.push(existsTask)
+          this.emit(EventType.TaskUpdate, existsTask)
         } else {
-          task = taskFactory(file)
-          task.name = file.name
+          newTask = taskFactory(file, singleFileTask)
         }
       }
-      if (task) {
-        task.oss = ossOptions?.enable ? ossOptions?.type : task.oss
-        taskList.push(task)
-        this.taskQueue.push(task)
+      if (newTask) {
+        newTask.oss = ossOptions?.enable ? ossOptions?.type : newTask.oss
+        newTask.type = this.options.singleFileTask ? 'file' : newTask.type
+        taskList.push(newTask)
+        this.taskQueue.push(newTask)
         // 任务创建事件
-        this.emit(EventType.TaskCreated, task)
+        this.emit(EventType.TaskCreated, newTask)
       }
     })
+
     return taskList
   }
 }

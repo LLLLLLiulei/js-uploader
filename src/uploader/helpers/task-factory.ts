@@ -1,17 +1,18 @@
 import { idGenerator } from '../../utils/id-generator'
 import { StatusCode, UploadFile, UploadTask } from '../../types'
 
-export const taskFactory = (file: UploadFile): UploadTask => {
+export const taskFactory = (file: UploadFile, singleFileTask?: boolean): UploadTask => {
   let pos = file.relativePath.indexOf('/')
-  let name = pos === -1 ? file.name : file.relativePath.substring(0, pos)
+  let name = singleFileTask || pos === -1 ? file.name : file.relativePath.substring(0, pos)
   const task: UploadTask = {
     id: 'task-' + idGenerator(),
     name,
     type: pos === -1 ? 'file' : 'dir',
     fileIDList: [file.id],
+    filSize: file.size,
     fileList: [file],
     extraInfo: {},
-    oss: undefined,
+    oss: false,
     progress: 0,
     status: StatusCode.Pause,
     addTime: new Date(),
