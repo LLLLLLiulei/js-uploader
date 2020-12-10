@@ -1,8 +1,7 @@
-import { EventEmitter, UploadFile, FileChunk, Storage, FileStore } from './modules'
+import { EventEmitter, Storage, FileStore } from './modules'
 import { Observable, from, of, Subscriber, Subscription, forkJoin } from 'rxjs'
-import { UploadTask } from './modules/UploadTask'
 import { concatMap, tap } from 'rxjs/operators'
-import { ID } from '../types'
+import { FileChunk, ID, UploadFile, UploadTask } from '../types'
 
 export default class Base extends EventEmitter {
   protected constructor () {
@@ -14,12 +13,11 @@ export default class Base extends EventEmitter {
   }
 
   protected createObserverble<T> (input: T | ((...args: any[]) => T | Promise<T>), ...args: any[]): Observable<T> {
-    return Observable.create((ob: Subscriber<T>) => {
+    return new Observable((ob: Subscriber<T>) => {
       let sub: Subscription
       try {
         let data = typeof input === 'function' ? (<Function>input)(...args) : input
         sub = this.toObserverble(data).subscribe(ob)
-        return () => sub.unsubscribe()
       } catch (error) {
         ob.error(error)
       }

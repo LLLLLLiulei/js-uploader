@@ -1,5 +1,6 @@
 import { Observable, fromEvent, from } from 'rxjs'
-import { tap, map, mergeMap } from 'rxjs/operators'
+import { tap, mergeMap } from 'rxjs/operators'
+import { FileDraggerOptions } from '../../types'
 
 export class FileDragger {
   $el: HTMLElement
@@ -95,11 +96,3 @@ export class FileDragger {
 }
 
 type DragEventHandler = (event: DragEvent) => void
-
-export interface FileDraggerOptions {
-  $el: HTMLElement
-  onDragover?: DragEventHandler
-  onDragenter?: DragEventHandler
-  onDragleave?: DragEventHandler
-  onDrop?: DragEventHandler
-}

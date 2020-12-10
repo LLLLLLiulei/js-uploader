@@ -1,12 +1,10 @@
-import { UploadTask } from '../modules/UploadTask'
 import { Observable, Subscriber, of, from, forkJoin, Subscription } from 'rxjs'
-import { ID, StringKeyObject, StatusCode } from '../../types'
-import { fileReader } from '../helpers/brower/file-reader'
+import { ID, StringKeyObject, StatusCode, UploaderOptions, UploadFile, UploadTask, FileChunk } from '../../types'
+import { fileReader } from '../helpers/file-reader'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
-import { FileStore, UploadFile, FileChunk, Storage } from '../modules'
-import { UploaderOptions } from '..'
+import { FileStore, Storage } from '../modules'
 import Base from '../Base'
-import { md5WorkerPool } from '../../worker'
+import { md5WorkerPool } from '../../shared/md5WorkerPool'
 
 export default abstract class TaskHandler extends Base {
   public task: UploadTask
@@ -24,26 +22,33 @@ export default abstract class TaskHandler extends Base {
   abstract retry (): this
   abstract abort (): this
 
-  protected computeFileHash (file: Blob | undefined, algorithm?: string): Observable<string> {
-    if (!file) {
-      return of('')
-    }
+  protected computeFileHash (file: Blob | ArrayBuffer, algorithm?: string): Observable<string> {
     return new Observable((ob: Subscriber<string>) => {
       algorithm = algorithm || 'md5'
       const sparkMd5 = new SparkMD5.ArrayBuffer()
-      const fileReader = new FileReader()
-      fileReader.readAsArrayBuffer(file)
-      fileReader.onload = (e: ProgressEvent<FileReader>) => {
-        let res: ArrayBuffer = e!.target!.result as ArrayBuffer
-        sparkMd5.append(res)
+      let fileReader: Nullable<FileReader>
+      const calc = (data: ArrayBuffer) => {
+        sparkMd5.append(data)
         let md5 = sparkMd5.end()
         ob.next(md5)
         ob.complete()
       }
-      fileReader.onerror = (error) => {
-        ob.error(error)
+      if (file instanceof ArrayBuffer) {
+        calc(file)
+      } else {
+        fileReader = new FileReader()
+        fileReader.readAsArrayBuffer(file)
+        fileReader.onload = (e: ProgressEvent<FileReader>) => {
+          calc(e?.target?.result as ArrayBuffer)
+        }
+        fileReader.onerror = (error) => {
+          ob.error(error)
+        }
       }
-      return () => fileReader.abort()
+      return () => {
+        sparkMd5.destroy()
+        fileReader?.abort()
+      }
     })
   }
 
@@ -87,10 +92,6 @@ export default abstract class TaskHandler extends Base {
     baseParams: StringKeyObject,
   ): Observable<StringKeyObject | undefined> {
     return this.createObserverble(this.uploaderOptions.requestOptions.body, this.task, uploadfile, baseParams)
-  }
-
-  protected computeHashWhen (blob: Blob | undefined, algorithm: string, condition: boolean): Observable<string> {
-    return condition ? this.computeFileHash(blob, algorithm) : of('')
   }
 
   protected getUploadFileByID (id: ID): Observable<Nullable<UploadFile>> {

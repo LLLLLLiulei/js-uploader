@@ -1,5 +1,4 @@
-import { ID } from '../../types'
-import { UploadFile } from './UploadFile'
+import { ID, UploadFile } from '../../types'
 
 export class FileStore {
   private static store: Map<ID, UploadFile> = new Map()

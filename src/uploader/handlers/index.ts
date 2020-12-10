@@ -1,8 +1,7 @@
-import { UploadTask } from '../modules/UploadTask'
+import { UploadTask, UploaderOptions } from '../../types'
 import { CommonsTaskHandler } from './CommonsTaskHandler'
 import { QiniuOSSTaskHandler } from './QiniuOSSTaskHandler'
 import TaskHandler from './TaskHandler'
-import { UploaderOptions } from '../Uploader'
 
 export function handle (task: UploadTask, uploaderOptions: UploaderOptions): TaskHandler {
   let handler: TaskHandler

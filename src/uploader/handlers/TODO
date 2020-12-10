@@ -4,3 +4,7 @@
 计算hash读取文件
 hook
 持久化
+
+singleFileTask-》singleFileTask
+
+task：type、fileSize

@@ -1,7 +1,6 @@
 import { Uploader } from './uploader'
-import { UploadTask } from './uploader/modules/UploadTask'
-import { UploadFile, FileChunk } from './uploader/modules'
-import { EventType, ID } from './types'
+
+import { EventType, ID, UploadFile, UploadTask } from './types'
 import * as $ from 'jquery'
 import { ajax } from 'rxjs/ajax'
 import { Observable } from 'rxjs'
@@ -10,10 +9,7 @@ import { Observable } from 'rxjs'
 // import './shared/sparkMD5Factory'
 // console.log('🚀 ~ file: test.ts ~ line 10 ~ SparkMD5', SparkMD5)
 
-import { md5WorkerPool } from './worker'
 import { ajaxGetJSON, ajaxPost } from 'rxjs/internal/observable/dom/AjaxObservable'
-
-Object.assign(window, { md5WorkerPool })
 
 let tokenMap = {}
 const uploader = Uploader.create({
@@ -99,15 +95,15 @@ const uploader = Uploader.create({
   },
   // unpresistTaskWhenSuccess: false,
   // fsAdapter:{},
-  autoUpload: true,
-  singleTask: false,
+  autoUpload: false,
+  singleFileTask: false,
   skipFileWhenUploadError: false,
   chunkSize: 1024 * 1024,
   computeFileHash: true,
   computeChunkHash: true,
-  resumable: true,
-  chunkConcurrency: 2,
-  taskConcurrency: 2,
+  resumable: false,
+  chunkConcurrency: 20,
+  taskConcurrency: 5,
   maxRetryTimes: 1,
   retryInterval: 1000,
   filePicker: [
@@ -128,6 +124,7 @@ const uploader = Uploader.create({
       // $('#file-dragger').html('拖拽文件到此处上传')
     },
   },
+  fileFilter: (name) => !/\.DS_Store/.test(name),
 })
 console.log('uploader', uploader)
 
@@ -182,7 +179,7 @@ const appendHtml = (task: UploadTask) => {
     }, 500)
   })
 }
-uploader.on(EventType.TaskAdd, appendHtml)
+uploader.on(EventType.TaskCreated, appendHtml)
 uploader.on(EventType.TaskRestore, appendHtml)
 uploader.on(EventType.TaskUploadStart, (task: UploadTask) => {
   $(`#${task.id} .task-status`).html(task.status)
@@ -199,13 +196,16 @@ uploader.on(EventType.TaskComplete, (task: UploadTask) => {
   console.log('===TaskComplete', task)
   $(`#${task.id} .task-status`).html(task.status)
 })
-uploader.on(EventType.TaskPaused, (task: UploadTask) => {
+uploader.on(EventType.TaskPause, (task: UploadTask) => {
   console.log('===TaskPaused', task)
   $(`#${task.id} .task-status`).html(task.status)
 })
-uploader.on(EventType.TaskCanceled, (task: UploadTask) => {
+uploader.on(EventType.TaskCancel, (task: UploadTask) => {
   console.log('===TaskCanceled', task)
   $(`#${task.id}`).remove()
+})
+uploader.on(EventType.TaskError, (task: UploadTask) => {
+  $(`#${task.id} .task-status`).html(task.status)
 })
 uploader.on(EventType.Complete, () => {
   console.warn('Complete--------------------------------------------------------------------')
@@ -233,7 +233,7 @@ setTimeout(() => {
     console.log('cancel upload')
     uploader.cancel()
   })
-}, 500)
+})
 
 console.log(Object.keys(EventType))
 
@@ -242,3 +242,12 @@ Object.assign(window, { up: uploader })
 ajaxGetJSON('http://ecm.test.work.zving.com/heartbeat').subscribe(console.log)
 
 // ajaxPost('http://ecm.test.work.zving.com/catalogs/4751/files/upload').subscribe(console.log)
+
+// let sub: Nullable<Subscription> = scheduled([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], animationFrameScheduler).subscribe({
+//   next: console.warn,
+//   complete: () => {
+//     console.log('complete')
+//     sub = (sub?.unsubscribe() as any) as null
+//     console.log('🚀 ~ file: test.ts ~ line 256 ~ letsub:Nullable<Subscription>=scheduled ~ sub', sub)
+//   },
+// })

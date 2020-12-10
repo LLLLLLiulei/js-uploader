@@ -1,12 +1,9 @@
-import { UploadTask } from '../modules/UploadTask'
 import { Observable, forkJoin, from, of } from 'rxjs'
 import { ajax, AjaxResponse } from 'rxjs/ajax'
 import { CommonsTaskHandler } from './CommonsTaskHandler'
-import { UploaderOptions } from '..'
 import { urlSafeBase64Decode, urlSafeBase64Encode } from '../../shared/base64'
-import { FileChunk, UploadFile } from '../modules'
 import { concatMap, mergeMap, switchMap, tap } from 'rxjs/operators'
-import { Protocol, StringKeyObject } from '../../types'
+import { Protocol, StringKeyObject, UploaderOptions, UploadFile, UploadTask } from '../../types'
 
 interface PutPolicy {
   ak: string

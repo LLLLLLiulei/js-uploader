@@ -1,4 +1,4 @@
-import { scriptContent as sparkMD5Factory } from '../shared/sparkMD5Script'
+import { scriptContent as sparkMD5Factory } from './sparkMD5Script'
 import { computeMd5 } from '../utils/compute-md5'
 import md5WorkerScript from './md5WorkerScript'
 

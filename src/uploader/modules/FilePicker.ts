@@ -1,5 +1,6 @@
 import { fromEvent, Observable } from 'rxjs'
 import { filter, map, tap } from 'rxjs/operators'
+import { FilePickerOptions } from '../../types'
 
 export class FilePicker {
   $el: HTMLInputElement
@@ -41,11 +42,4 @@ export class FilePicker {
     directory && this.$el.setAttribute('webkitdirectory', 'webkitdirectory')
     accept?.length && this.$el.setAttribute('accept', accept.join())
   }
-}
-
-export interface FilePickerOptions {
-  $el: HTMLInputElement | string
-  multiple?: boolean
-  directory?: boolean
-  accept?: string[]
 }
