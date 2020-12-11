@@ -39,7 +39,7 @@ const cjsPkgData = JSON.stringify(cjsPkg, null, 2)
 
 Promise.all([
   write('dist/cjs/package.json', cjsPkgData),
-  write('dist/es/README.md', README),
+  write('dist/esm/README.md', README),
   write('dist/cjs/README.md', README),
 ])
   .then(() => {
@@ -50,7 +50,7 @@ Promise.all([
     // console.info(stdout)
   })
   .then(() => {
-    // const { stderr, stdout } = shelljs.exec('npm publish dist/es')
+    // const { stderr, stdout } = shelljs.exec('npm publish dist/esm')
     // if (stderr) {
     //   throw stderr
     // }

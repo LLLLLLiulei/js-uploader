@@ -3,22 +3,19 @@
   "version": "0.0.1",
   "description": "",
   "main": "dist/cjs/index.js",
-  "module": "dist/es/index.js",
+  "module": "dist/esm/index.js",
   "scripts": {
-    "build_all": "npm-run-all build_cjs build_module_es",
+    "build": "npm-run-all build_cjs build_esm",
     "build_cjs": "npm-run-all clean_dist_cjs copy_src_cjs compile_cjs",
-    "build_module_es": "npm-run-all clean_dist_es copy_src_es compile_module_es",
-    "build_test": "rm -rf spec-js && tsc -p test/tsconfig.json",
+    "build_esm": "npm-run-all clean_dist_es copy_src_es compile_module_es",
     "clean_dist_cjs": "rm -rf ./dist/cjs",
-    "clean_dist_es": "rm -rf ./dist/es",
-    "check_circular_dependencies": "madge ./dist/cjs --circular",
+    "clean_dist_es": "rm -rf ./dist/esm",
     "compile_cjs": "tsc dist/cjs/src/index.ts -m commonjs --outDir dist/cjs --sourcemap --target ES5 -d --diagnostics --pretty --strict --noImplicitReturns --noUnusedLocals --noUnusedParameters --strict --suppressImplicitAnyIndexErrors --moduleResolution node --noEmitHelpers --importHelpers --lib dom,es5,es2015,es2016,es2017",
-    "compile_module_es": "tsc dist/es/src/index.ts    -m ES2015   --outDir dist/es  --sourcemap --target ES5 -d --diagnostics --pretty --strict --noImplicitReturns --noUnusedLocals --noUnusedParameters --strict --suppressImplicitAnyIndexErrors --moduleResolution node --noEmitHelpers --importHelpers --lib dom,es5,es2015,es2016,es2017",
+    "compile_module_es": "tsc dist/esm/src/index.ts    -m ES2015   --outDir dist/esm  --sourcemap --target ES5 -d --diagnostics --pretty --strict --noImplicitReturns --noUnusedLocals --noUnusedParameters --strict --suppressImplicitAnyIndexErrors --moduleResolution node --noEmitHelpers --importHelpers --lib dom,es5,es2015,es2016,es2017",
     "copy_src_cjs": "shx mkdir -p ./dist/cjs/src && shx cp -r ./src/* ./dist/cjs/src",
-    "copy_src_es": "shx mkdir -p ./dist/es/src && shx cp -r ./src/* ./dist/es/src",
+    "copy_src_es": "shx mkdir -p ./dist/esm/src && shx cp -r ./src/* ./dist/esm/src",
     "start": "webpack-dev-server --mode development",
-    "build": "webpack -p --env=es5min && webpack --env=es5  && webpack --env=es6",
-    "publish_all": "ts-node ./tools/publish.ts"
+    "publish": "ts-node ./tools/publish.ts"
   },
   "keywords": [
     "RxJS",
@@ -61,7 +58,8 @@
     "localforage": "^1.9.0",
     "localforage-getitems": "^1.4.2",
     "localforage-removeitems": "^1.4.0",
-    "localforage-setitems": "^1.4.0"
+    "localforage-setitems": "^1.4.0",
+    "localforage-startswith": "^1.4.0"
   },
   "peerDependencies": {
     "rxjs": "^6.5.3",
@@ -69,7 +67,8 @@
     "localforage": "^1.9.0",
     "localforage-getitems": "^1.4.2",
     "localforage-removeitems": "^1.4.0",
-    "localforage-setitems": "^1.4.0"
+    "localforage-setitems": "^1.4.0",
+    "localforage-startswith": "^1.4.0"
   },
   "typings": "./index.d.ts",
   "prettier": {

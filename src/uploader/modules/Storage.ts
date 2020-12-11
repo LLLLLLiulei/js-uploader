@@ -2,6 +2,7 @@ import * as localforage from 'localforage'
 import { extendPrototype as extendRemoveitems } from 'localforage-removeitems'
 import { extendPrototype as extendSetitems } from 'localforage-setitems'
 import { extendPrototype as extendGetitems } from 'localforage-getitems'
+import { extendPrototype as extendStartswith } from 'localforage-startswith'
 
 interface IStorage extends LocalForage {
   list: () => Promise<unknown[]>
@@ -28,6 +29,7 @@ function createInstance (opts: LocalForageOptions): IStorage {
   extendRemoveitems(instance)
   extendSetitems(instance)
   extendGetitems(instance)
+  extendStartswith(instance)
   extendList(instance)
   return instance as IStorage
 }

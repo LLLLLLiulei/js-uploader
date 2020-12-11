@@ -1,42 +1,10 @@
-https://www.processon.com/diagraming/5e131bd2e4b0698ded2f2a69
+事件触发
+状态修改
+请求响应参数校验
+计算hash读取文件
+hook
+持久化
 
+singleFileTask-》singleFileTask
 
-pause
-waiting
-computing ?
-uploading
-error
-complete
-
-
-hash计算优化
-
- 
-
-TaskObserver = from(fileIDList).pipe(
-  mergeMap(FileObserver)
-)
-
-FileObserver = of(fileID).pipe(
-  mergeMap(()=>{
-    from(chunkList).pipe(
-      mergeMap(ChunkObserver)
-    )
-  })
-)
-
-ChunkObserver = of(chunk).pipe()
-
-
-TaskObserver.unsubscribe()
-
-
-interface result{
-  error:Error,
-  reponse:Reponse
-}
-
-interface Reponse{
-  status:number
-  data:any
-}
+task：type、fileSize
