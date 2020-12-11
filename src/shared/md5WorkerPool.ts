@@ -6,7 +6,6 @@ const taskQueue: Task[] = []
 const workers: MD5Worker[] = []
 const workerURL = URL.createObjectURL(new Blob([`${sparkMD5Factory};${md5WorkerScript}`]))
 const maxWorkerNum: number = 1 || typeof navigator !== 'undefined' ? navigator.hardwareConcurrency - 0 || 4 : 4
-const keepaliveTime: number = 1000 * 60 * 1 // TODO
 interface Task {
   data: Blob | ArrayBuffer
   callback?: (error: Error | null, md5: string) => void

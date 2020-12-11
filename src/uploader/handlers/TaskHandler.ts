@@ -1,4 +1,4 @@
-import { Observable, Subscriber, of, from, forkJoin, Subscription } from 'rxjs'
+import { Observable, Subscriber, of, from, forkJoin, Subscription, PartialObserver } from 'rxjs'
 import { ID, StringKeyObject, StatusCode, UploaderOptions, UploadFile, UploadTask, FileChunk } from '../../types'
 import { fileReader } from '../helpers/file-reader'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
@@ -41,8 +41,8 @@ export default abstract class TaskHandler extends Base {
         fileReader.onload = (e: ProgressEvent<FileReader>) => {
           calc(e?.target?.result as ArrayBuffer)
         }
-        fileReader.onerror = (error) => {
-          ob.error(error)
+        fileReader.onerror = (e: ProgressEvent<FileReader>) => {
+          ob.error(e)
         }
       }
       return () => {
@@ -59,11 +59,11 @@ export default abstract class TaskHandler extends Base {
       let result: any
       let sub: Nullable<Subscription>
       if (data instanceof Blob) {
-        sub = from((result = md5WorkerPool.execute(data).promise!)).subscribe(ob)
+        sub = from((result = md5WorkerPool.execute(data).promise!)).subscribe(ob as PartialObserver<any>)
       } else {
         sub = this.readFile(data)
           .pipe(switchMap((data: Blob) => (result = md5WorkerPool.execute(data)).promise!))
-          .subscribe(ob)
+          .subscribe(ob as PartialObserver<any>)
       }
       return () => {
         result?.cancel?.()

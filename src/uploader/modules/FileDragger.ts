@@ -12,7 +12,7 @@ export class FileDragger {
       throw new Error()
     }
     this.$el = $el
-    const wrap = (e: DragEvent, fn?: DragEventHandler): DragEventHandler => (e: DragEvent) => {
+    const wrap = (_e: DragEvent, fn?: DragEventHandler): DragEventHandler => (e: DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
       fn?.(e)
@@ -46,7 +46,7 @@ export class FileDragger {
     }
   }
 
-  private parseWebkitDataTransfer (dataTransfer: DataTransfer, e: DragEvent): Promise<File[]> {
+  private parseWebkitDataTransfer (dataTransfer: DataTransfer, _e: DragEvent): Promise<File[]> {
     const files: File[] = []
 
     const read = (reader: any): Promise<unknown> => {

@@ -88,8 +88,8 @@ export class CommonsTaskHandler extends TaskHandler {
 
     this.subscription?.unsubscribe()
     this.subscription = this.upload$.subscribe({
-      next: (...args) => {
-        console.log('🚀 ~  上传任务 next ', ...args)
+      next: () => {
+        console.log('🚀 ~  上传任务 next ')
       },
       error: (err: Error) => {
         console.log('🚀 ~ 上传任务出错', err)
@@ -341,7 +341,7 @@ export class CommonsTaskHandler extends TaskHandler {
     chunk: FileChunk,
   ): Observable<UploadFormData> {
     return new Observable((ob: Subscriber<UploadFormData>) => {
-      const { beforeFileRead, fileReaded } = this.uploaderOptions
+      const { beforeFileRead } = this.uploaderOptions
       // 文件读取前后hook
       const beforeRead = beforeFileRead?.(chunk, uploadFile, this.task) || Promise.resolve()
       const shouldComputeChunkHash: boolean = !!this.uploaderOptions.computeChunkHash

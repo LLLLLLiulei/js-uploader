@@ -2,7 +2,7 @@ import { ID, StatusCode, EventType, UploaderOptions, UploadFile, UploadTask } fr
 import { fileFactory } from './helpers/file-factory'
 import { FileStore, Storage, FileDragger, FilePicker } from './modules'
 import { handle as handleTask } from './handlers'
-import { tap, map, concatMap, mapTo, mergeMap, filter, first, take, switchMap, takeUntil } from 'rxjs/operators'
+import { tap, map, concatMap, mapTo, mergeMap, filter, first, switchMap, takeUntil } from 'rxjs/operators'
 import {
   from,
   Observable,
@@ -81,6 +81,7 @@ export class Uploader extends Base {
   }
 
   private validateOptions (options: UploaderOptions) {
+    console.log('🚀 ~ file: Uploader.ts ~ line 84 ~ Uploader ~ validateOptions ~ options', options)
     // TODO
   }
 
@@ -101,7 +102,7 @@ export class Uploader extends Base {
 
       this.uploadSubscription?.unsubscribe()
       this.uploadSubscription = this.upload$.subscribe({
-        next: (v) => {
+        next: (v: UploadTask) => {
           console.log('任务结束', v)
         },
         error: (e: Error) => {
@@ -139,7 +140,7 @@ export class Uploader extends Base {
             }),
           ),
           fromEvent(handler!, EventType.TaskComplete).pipe(
-            tap((v) => {
+            tap(() => {
               // 完成
               this.freeHandler(task)
             }),

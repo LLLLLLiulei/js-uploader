@@ -12,7 +12,7 @@ export const computeMd5 = (data: Blob | ArrayBuffer): Promise<string> => {
       fileReader.onload = (e: ProgressEvent<FileReader>) => {
         calc(e.target?.result as ArrayBuffer)
       }
-      fileReader.onerror = (e) => {
+      fileReader.onerror = (e: ProgressEvent<FileReader>) => {
         console.warn('oops, something went wrong.', e)
         reject(e)
       }

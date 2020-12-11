@@ -1,5 +1,4 @@
 import * as localforage from 'localforage'
-import { extendPrototype as extendStartswith } from 'localforage-startswith'
 import { extendPrototype as extendRemoveitems } from 'localforage-removeitems'
 import { extendPrototype as extendSetitems } from 'localforage-setitems'
 import { extendPrototype as extendGetitems } from 'localforage-getitems'
@@ -26,7 +25,6 @@ function extendList (instance: LocalForage): IStorage {
 
 function createInstance (opts: LocalForageOptions): IStorage {
   const instance = localforage.createInstance(opts)
-  extendStartswith(instance)
   extendRemoveitems(instance)
   extendSetitems(instance)
   extendGetitems(instance)
@@ -53,5 +51,4 @@ export class Storage {
   static getItems = Storage.Public.getItems.bind(Storage.Public)
   static setItems = Storage.Public.setItems.bind(Storage.Public)
   static removeItems = Storage.Public.removeItems.bind(Storage.Public)
-  static startsWith = Storage.Public.startsWith.bind(Storage.Public)
 }
