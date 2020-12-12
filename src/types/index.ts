@@ -1,26 +1,27 @@
 export enum EventType {
-  FileIgnored = 'FileIgnored',
-  FileUploadStart = 'FileUploadStart',
-  FileError = 'FileError',
-  FileComplete = 'FileComplete',
+  FileUploadStart = 'file-upload-start',
+  FileError = 'file-error',
+  FileComplete = 'file-complete',
 
-  FileSkip = 'FileSkip',
+  ChunkUploadStart = 'chunk-upload-start',
+  ChunkError = 'chunk-error',
+  ChunkComplete = 'chunk-complete',
 
-  TaskCreated = 'TaskCreated',
-  TaskUpdate = 'TaskUpdate',
-  TaskRestore = 'TaskRestore',
-  TaskPresist = 'TaskPresist',
-  TaskWaiting = 'TaskWaiting',
-  TaskUploadStart = 'TaskUploadStart',
-  TaskProgress = 'TaskProgress',
-  TaskPause = 'TaskPause',
-  TaskResume = 'TaskResume',
-  TaskRetry = 'TaskRetry',
-  TaskError = 'TaskError',
-  TaskCancel = 'TaskCancel',
-  TaskComplete = 'TaskComplete',
+  TaskCreated = 'task-created',
+  TaskUpdate = 'task-update',
+  TaskRestore = 'task-restore',
+  TaskPresist = 'task-presist',
+  TaskWaiting = 'task-waiting',
+  TaskUploadStart = 'task-upload-start',
+  TaskProgress = 'task-progress',
+  TaskPause = 'task-pause',
+  TaskResume = 'task-resume',
+  TaskRetry = 'task-retry',
+  TaskError = 'task-error',
+  TaskCancel = 'task-cancel',
+  TaskComplete = 'task-complete',
 
-  Complete = 'Complete',
+  Complete = 'complete',
 }
 
 export enum StatusCode {
@@ -31,18 +32,11 @@ export enum StatusCode {
   Complete = 'complete',
 }
 
-enum TaskExtraStatus {
-  Reading = 'reading',
-  Transfer = 'reading',
-}
-
 export type ID = string | number
 
 export type Protocol = 'http:' | 'https:'
 
-export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'get' | 'post' | 'put' | 'patch' | 'delete'
-
-export type Domain = string | { http: string; https: string }
+export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export type OSS = false | 'qiniu'
 
@@ -52,7 +46,7 @@ export type FileStatus = StatusCode
 
 export type ChunkStatus = StatusCode
 
-export type TaskStatus = StatusCode | TaskExtraStatus
+export type TaskStatus = StatusCode
 
 export interface FileChunk {
   id: ID
@@ -66,17 +60,18 @@ export interface FileChunk {
   progress: number
   status: ChunkStatus
   response: StringKeyObject
+  extraInfo: StringKeyObject
 }
 
 export interface UploadFile {
   id: ID
-  hash: string
   name: string
   type: string
   size: number
   relativePath: string
   path: string
   lastModified: number
+  hash: string
   raw: Nullable<Blob>
 
   uploaded: number
@@ -88,10 +83,11 @@ export interface UploadFile {
   extraInfo: StringKeyObject
 }
 
+export type TaskType = 'file' | 'dir'
 export interface UploadTask {
   id: ID
   name: string
-  type: 'file' | 'dir'
+  type: TaskType
   fileIDList: ID[]
   fileList: UploadFile[]
   filSize: number
@@ -101,14 +97,12 @@ export interface UploadTask {
   status: TaskStatus
   addTime: Date
 }
-
 export interface FilePickerOptions {
   $el: HTMLInputElement | string
   multiple?: boolean
   directory?: boolean
   accept?: string[]
 }
-
 export interface FileDraggerOptions {
   $el: HTMLElement
   onDragover?: DragEventHandler
@@ -128,8 +122,8 @@ export interface OssOptions {
 }
 
 export interface RequestOptions {
+  // 上传请求url
   url: string | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => string | Promise<string>)
-  method?: RequestMethod
   headers?: StringKeyObject | ((task: UploadTask, upfile: UploadFile) => StringKeyObject | Promise<StringKeyObject>)
   body?:
     | StringKeyObject
@@ -149,67 +143,91 @@ export interface AjaxResponse {
 }
 
 export interface UploaderOptions {
+  // 请求配置
   requestOptions: RequestOptions
+
+  // oss配置
   ossOptions?: OssOptions
 
+  // 是否单文件任务
   singleFileTask?: boolean
 
-  skipFileWhenUploadError?: boolean
-  skipTaskWhenUploadError?: boolean
-
+  // 是否文件计算hash（默认md5）
   computeFileHash?: boolean
+
+  // 是否每个分片hash（默认md5）
   computeChunkHash?: boolean
 
+  // 选择文件后自动上传
   autoUpload?: boolean
+
+  // 错误时最大重试次数
   maxRetryTimes?: number
+
+  // 错误时重试间隔
   retryInterval?: number
 
+  // 是否保存任务便于断点续传
   resumable?: boolean
+
+  // 是否分片
   chunked?: boolean
+
+  // 分片大小
   chunkSize?: number
+
+  // 一个文件可同时上传的分片并发数
   chunkConcurrency?: number
+
+  // 可同时上传的任务并发数
   taskConcurrency?: number
 
+  // 任务中单个文件上传上传错误是否跳过该文件
+  skipFileWhenUploadError?: boolean
+
+  // 上传过程中任务出错是否跳过该任务
+  skipTaskWhenUploadError?: boolean
+
+  // 文件选择器
   filePicker?: FilePickerOptions | FilePickerOptions[]
+
+  // 文件拖拽器
   fileDragger?: FileDraggerOptions | FileDraggerOptions[]
+
+  // 文件过滤器
   fileFilter?: RegExp | ((fileName: string, file: File | string) => boolean)
 
+  // 读取文件的方法
   readFileFn?: (taks: UploadTask, upfile: UploadFile, start?: number, end?: number) => Blob | Promise<Blob>
-  computeHashFn?: (data: Blob | string, upfile: UploadFile) => string | Promise<string>
+
+  // 处理requestBody的方法
   requestBodyProcessFn?: (params: StringKeyObject) => Promise<any> | any
 
+  // 文件添加前（选择文件后）
   beforeFilesAdd?: (files: Array<File | string>) => MaybePromise
-  filesAdded?: (files: Array<File | string>, tasks: UploadTask[]) => MaybePromise
 
+  // 任务开始前
   beforeTaskStart?: (task: UploadTask) => MaybePromise
-  taskStarted?: (task: UploadTask) => MaybePromise
 
+  // 文件开始上传前
   beforeFileUploadStart?: (file: UploadFile, task: UploadTask) => MaybePromise
-  fileUploadStarted?: (file: UploadFile, task: UploadTask) => MaybePromise
 
+  // 文件hash计算前（如需计算hash）
   beforeFileHashCompute?: (file: UploadFile, task: UploadTask) => MaybePromise
-  fileHashComputed?: (file: UploadFile, task: UploadTask) => MaybePromise
 
+  // 文件读取前（分片读取）
   beforeFileRead?: (chunk: FileChunk, file: UploadFile, task: UploadTask) => MaybePromise
-  fileReaded?: (chunk: FileChunk, file: UploadFile, task: UploadTask) => MaybePromise
 
+  // 上传请求发送前
   beforeUploadRequestSend?: (requestParams: StringKeyObject, file: UploadFile, task: UploadTask) => MaybePromise
-  uploadRequestSent?: (requestParams: StringKeyObject, file: UploadFile, task: UploadTask) => MaybePromise
 
+  // 处理上传请求响应前
   beforeUploadResponseProcess?: (
     response: AjaxResponse,
     chunk: FileChunk,
     file: UploadFile,
     task: UploadTask,
   ) => MaybePromise
-  uploadResponseProcessed?: (
-    response: AjaxResponse,
-    chunk: FileChunk,
-    file: UploadFile,
-    task: UploadTask,
-  ) => MaybePromise
-
-  beforeFileUploadComplete?: (file: UploadFile, task: UploadTask) => MaybePromise
 }
 
 export type RequestOpts = {
@@ -229,7 +247,8 @@ export interface ProgressPayload {
   chunk: FileChunk
   event: ProgressEvent
 }
-export interface UploadFormData {
+
+export interface BaseParams {
   chunkIndex: number
   chunkSize: number
   currentChunkSize: number
@@ -240,5 +259,9 @@ export interface UploadFormData {
   chunkCount: number
   fileHash?: string
   chunkHash?: string
+}
+
+export interface UploadFormData extends BaseParams {
+  file?: Blob
   [key: string]: any
 }

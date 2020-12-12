@@ -13,6 +13,7 @@ export const chunkFactory = (id: ID, index: number, start: number, end: number, 
     progress: 0,
     status: StatusCode.Pause,
     response: {},
+    extraInfo: {},
   }
   return chunk
 }

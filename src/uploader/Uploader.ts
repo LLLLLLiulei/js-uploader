@@ -25,7 +25,6 @@ import { taskFactory } from './helpers/task-factory'
 const defaultOptions: UploaderOptions = {
   requestOptions: {
     url: '/',
-    method: 'post',
     timeout: 0,
   },
   autoUpload: false,
@@ -104,6 +103,7 @@ export class Uploader extends Base {
       this.uploadSubscription = this.upload$.subscribe({
         next: (v: UploadTask) => {
           console.log('任务结束', v)
+          this.checkComplete()
         },
         error: (e: Error) => {
           console.log('任务出错', e)
@@ -115,6 +115,12 @@ export class Uploader extends Base {
       this.subscription.add(this.uploadSubscription)
     }
     this.putNextTask(task)
+  }
+
+  private checkComplete (): void {
+    if (this.isComplete()) {
+      this.emit(EventType.Complete)
+    }
   }
 
   private executeForResult (task: UploadTask, action?: string): Observable<UploadTask> {
@@ -205,27 +211,13 @@ export class Uploader extends Base {
     unsubscribe()
 
     let queue = this.taskQueue.slice()
-    const fn = () => {
-      let list = queue.splice(0, 50)
-      if (list.length) {
-        this.removeTask(...list)
-        scheduleWork(fn)
-      } else {
-        unsubscribe()
-      }
+    const fn = (timeRemaining?: () => number) => {
+      do {
+        this.removeTask(...queue.splice(0, 100))
+      } while (queue.length && timeRemaining && timeRemaining?.())
+      queue.length ? scheduleWork(fn) : unsubscribe()
     }
     fn()
-
-    // let sub: Nullable<Subscription> = scheduled(this.taskQueue.slice(), animationFrameScheduler).subscribe({
-    //   next: (task) => {
-    //     this.removeTask(task)
-    //   },
-    //   complete: () => {
-    //     unsubscribe()
-    //     sub?.unsubscribe()
-    //     sub = null
-    //   },
-    // })
   }
 
   isUploading (): boolean {
@@ -264,7 +256,7 @@ export class Uploader extends Base {
   }
 
   private rebindTaskHandlerEvent (handler: TaskHandler, ...e: EventType[]): TaskHandler {
-    const events = e?.length ? e : Object.keys(EventType)
+    const events = e?.length ? e : Object.values(EventType)
     events.forEach((e) => {
       handler?.off(e)
       handler?.on(e, (...args) => this.taskHandlerEventCallback(e as EventType, ...args))
@@ -282,7 +274,7 @@ export class Uploader extends Base {
     let id = task.id
     let handler: Nullable<TaskHandler> = this.taskHandlerMap.get(id) || null
     if (handler) {
-      Object.keys(EventType).forEach((e) => handler!.off(e))
+      Object.values(EventType).forEach((e) => handler!.off(e))
       this.taskHandlerMap.delete(id)
       handler = null
     }
@@ -324,9 +316,9 @@ export class Uploader extends Base {
         .then((list: unknown[]) => {
           console.log('Uploader -> restoreTask -> list', list)
           const taskList: UploadTask[] = []
-          const fn = () => {
-            const arr = list.splice(0, 20) as UploadTask[]
-            if (arr.length) {
+          const fn = (timeRemaining?: () => number) => {
+            while (list.length) {
+              const arr = list.splice(0, 20) as UploadTask[]
               arr.forEach((task) => {
                 if (task.status === StatusCode.Complete) {
                   return this.removeTaskFromStroage(task)
@@ -339,10 +331,11 @@ export class Uploader extends Base {
                 // 任务恢复事件
                 this.emit(EventType.TaskRestore, task)
               })
-              scheduleWork(fn)
-            } else {
-              resolve(taskList)
+              if (!timeRemaining || !timeRemaining?.()) {
+                break
+              }
             }
+            list.length ? scheduleWork(fn) : resolve(taskList)
           }
           fn()
         })
@@ -386,11 +379,6 @@ export class Uploader extends Base {
             }),
             concatMap((files: File[]) => {
               return from(this.addFilesAsync(...files)).pipe(map((tasks) => ({ files, tasks })))
-            }),
-            concatMap(({ files, tasks }) => {
-              // 添加文件后hook
-              const afterAdd = this.options.filesAdded?.(files, tasks) || Promise.resolve()
-              return from(afterAdd).pipe(mapTo(tasks))
             }),
           )
           .subscribe(),
@@ -450,17 +438,19 @@ export class Uploader extends Base {
               this.emit(EventType.TaskPresist, tasks)
               sub?.unsubscribe()
               sub = null
+              resolve(tasks)
             },
           })
         } else {
           resolve(tasks)
         }
       }
+
       const { fileFilter } = this.options
       const tasks: UploadTask[] = []
-      const fn = () => {
-        console.log(files.length)
-        if (files.length) {
+      const fn = (timeRemaining?: () => number) => {
+        while (files.length) {
+          console.log(files.length)
           const filelist: UploadFile[] = []
           files.splice(0, 20).forEach((file) => {
             let ignored = false
@@ -471,17 +461,15 @@ export class Uploader extends Base {
             }
             if (!ignored) {
               filelist.push(fileFactory(file))
-            } else {
-              // 文件被忽略事件
-              this.emit(EventType.FileIgnored, file)
             }
           })
           const currentTasks: UploadTask[] = this.generateTask(...filelist)
           tasks.push(...currentTasks)
-          scheduleWork(fn)
-        } else {
-          finish(tasks)
+          if (!timeRemaining || !timeRemaining?.()) {
+            break
+          }
         }
+        files.length ? scheduleWork(fn) : finish(tasks)
       }
       fn()
     })

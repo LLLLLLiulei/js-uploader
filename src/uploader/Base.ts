@@ -60,11 +60,10 @@ export default class Base extends EventEmitter {
       if (!file) {
         return reject('no file!')
       }
-      console.time(`save file ${file.name}`)
       const promise: Promise<any> = file.raw ? this.presistBlob(String(file.id), file.raw) : Promise.resolve()
       promise
         .then(() => {
-          console.timeEnd(`save file ${file.name}`)
+          console.warn(`save file ${file.name}`)
           const upfile = file.raw ? Object.assign({}, file, { raw: null }) : file
           Storage.UploadFile.setItem(String(file.id), upfile)
             .then(resolve)

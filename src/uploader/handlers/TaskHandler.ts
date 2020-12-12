@@ -46,8 +46,8 @@ export default abstract class TaskHandler extends Base {
         }
       }
       return () => {
-        sparkMd5.destroy()
         fileReader?.abort()
+        sparkMd5.destroy()
       }
     })
   }
@@ -134,7 +134,6 @@ export default abstract class TaskHandler extends Base {
               )
             }
             upfile.status = upfile.status === StatusCode.Complete ? upfile.status : StatusCode.Pause
-            // upfile.status = upfile.status === StatusCode.Uploading ? StatusCode.Pause : upfile.status
             upfile.progress = upfile.status === StatusCode.Complete ? 100 : upfile.progress
             return source.length ? forkJoin(source).pipe(mapTo(upfile)) : of(upfile)
           }),
@@ -148,14 +147,14 @@ export default abstract class TaskHandler extends Base {
     })
   }
 
-  protected readFile (uploadfile: UploadFile, chunk?: FileChunk): Observable<Blob> {
+  protected readFile (uploadfile: UploadFile, start?: number, end?: number): Observable<Blob> {
     return new Observable((ob: Subscriber<Blob>) => {
       let reader = this.uploaderOptions.readFileFn
       let res: Promise<Blob> | Blob
       if (typeof reader === 'function') {
-        res = reader(this.task, uploadfile, chunk?.start, chunk?.end)
+        res = reader(this.task, uploadfile, start, end)
       } else {
-        res = fileReader(uploadfile, chunk?.start, chunk?.end)
+        res = fileReader(uploadfile, start, end)
       }
       const sub = this.toObserverble(res).subscribe(ob)
       return () => sub.unsubscribe()

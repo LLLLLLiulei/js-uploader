@@ -28,7 +28,7 @@ export class EventEmitter {
     this.removeListener(type, listener)
   }
 
-  emit (type: string, ...data: any[]): void {
+  protected emit (type: string, ...data: any[]): void {
     type && this.eventSubject.next({ type, data })
   }
 
