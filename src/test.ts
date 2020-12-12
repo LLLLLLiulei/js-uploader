@@ -1,15 +1,8 @@
 import { Uploader } from './uploader'
-
-import { EventType, ID, UploadFile, UploadTask } from './types'
+import { BaseParams, EventType, FileChunk, ID, UploadFile, UploadTask } from './types'
 import * as $ from 'jquery'
 import { ajax } from 'rxjs/ajax'
 import { Observable } from 'rxjs'
-
-// import md5workerContent from './worker/md5Worker'
-// import './shared/sparkMD5Factory'
-// console.log('🚀 ~ file: test.ts ~ line 10 ~ SparkMD5', SparkMD5)
-
-import { ajaxGetJSON, ajaxPost } from 'rxjs/internal/observable/dom/AjaxObservable'
 
 let tokenMap = {}
 const uploader = Uploader.create({
@@ -39,69 +32,59 @@ const uploader = Uploader.create({
     },
   },
   requestOptions: {
-    url: function (task: UploadTask, uploadfile: UploadFile) {
+    url: (task: UploadTask, uploadfile: UploadFile) => {
       // console.log('serverURL', task, uploadfile)
       // return 'http://10.2.45.100:2081/catalogs/1102/files/upload'
       return 'http://ecm.test.work.zving.com/catalogs/4751/files/upload'
     },
-    headers: function (task: UploadTask, uploadfile: UploadFile) {
+    headers: (task: UploadTask, uploadfile: UploadFile) => {
       // console.log('requestHeaders', task, uploadfile)
       return {
         CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
-        // CMPID: 'c336c544d2ea41c9ae9d93efa0e638a0',
-        // TOKEN:
-        //   'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwMzYwOTcyNywiaWF0IjoxNjAzMDA0OTI3LCJqdGkiOiIzZjZlNjZkMWIxNTU0NjBiODY2MDFkYzQxNTk3YWQ3YiJ9.BVL6a79QFS0NQJFzUZbnFodOIk6AINdIntwBQq96ZsQ',
         TOKEN:
           'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwNzc2NDI3NCwiaWF0IjoxNjA3MTU5NDc0LCJqdGkiOiJkODM5ZmI5YWY5M2M0NzVlODUwODE1YmUxM2M3YzQxOSJ9.G9iSOi6JQRXYQRtXpWuiVF7lfWs6xv7IsZZUDCLb32A',
         GUID: 'b1da407ce0a5408b847f4151d41783ff',
       }
     },
-    body: function (task: UploadTask, uploadfile: UploadFile) {
-      // console.log('requestParams', task, uploadfile)
-      return {
-        chunkNumber: 1,
+    body: (task: UploadTask, uploadfile: UploadFile, baseParams: BaseParams) => {
+      console.log('requestParams', task, uploadfile)
+      return Object.assign(baseParams, {
+        chunkNumber: baseParams.chunkIndex + 1,
         identifier: uploadfile.id,
         filename: uploadfile.name,
         totalChunks: uploadfile.chunkIDList?.length,
-      }
+      })
     },
   },
-  beforeFileHashCompute (file: UploadFile, task: UploadTask) {
-    // return new Promise((resolve, reejct) => {
-    //   console.log('beforeFileHashCompute -> file', file, task)
-    //   let num = 5
-    //   let timer = setInterval(() => {
-    //     console.log('beforeFileHashCompute', num--)
-    //     if (num < 0) {
-    //       clearInterval(timer)
-    //       resolve()
-    //     }
-    //   }, 1000)
-    // })
+  requestBodyProcessFn () {},
+  beforeFileHashCompute (task: UploadTask, file: UploadFile) {
+    return new Promise((resolve, reejct) => {
+      console.log('beforeFileHashCompute -> file', file, task)
+      let num = 5
+      let timer = setInterval(() => {
+        console.log('beforeFileHashCompute', num--)
+        if (num < 0) {
+          clearInterval(timer)
+          resolve()
+        }
+      }, 1000)
+    })
   },
   beforeUploadRequestSend (v, file, task) {
-    // console.log('beforeUploadRequestSend -> v,file,task', v, file, task)
-  },
-  uploadRequestSent (v, file, task) {
-    // console.log('uploadRequestSent -> v,file,task', v, file, task)
-  },
-  fileHashComputed (file: UploadFile, task: UploadTask) {
-    // console.log('fileHashComputed -> file', file)
+    console.log('beforeUploadRequestSend -> v,file,task', v, file, task)
   },
   readFileFn: function (task: UploadTask, uploadfile: UploadFile, start?: number, end?: number) {
     return new Promise((resolve, reject) => {
       resolve(uploadfile.raw?.slice(start, end))
     })
   },
-  // unpresistTaskWhenSuccess: false,
-  // fsAdapter:{},
   autoUpload: false,
   singleFileTask: true,
   skipFileWhenUploadError: false,
-  chunkSize: 1024 * 1024,
+  chunkSize: 4 * 1024 ** 2,
   computeFileHash: true,
   computeChunkHash: true,
-  resumable: true,
+  resumable: false,
   chunkConcurrency: 20,
   taskConcurrency: 5,
   maxRetryTimes: 1,
@@ -111,7 +94,6 @@ const uploader = Uploader.create({
     { $el: document.querySelector('#fileInput1') as HTMLInputElement, directory: true, multiple: true },
   ],
   fileDragger: {
-    // $el: document.querySelector('#file-dragger') as HTMLDivElement,
     $el: document.body,
     onDragenter: (e) => {
       // $('#file-dragger').html('松开鼠标上传')
@@ -178,7 +160,7 @@ const appendHtml = (task: UploadTask) => {
         let task = taskMap[taskID]
         uploader.cancel(task)
       })
-    }, 500)
+    })
   })
 }
 uploader.on(EventType.TaskCreated, appendHtml)
@@ -189,9 +171,9 @@ uploader.on(EventType.TaskUploadStart, (task: UploadTask) => {
 uploader.on(EventType.TaskWaiting, (task: UploadTask) => {
   $(`#${task.id} .task-status`).html(task.status)
 })
-uploader.on(EventType.TaskProgress, (progress: number, task: UploadTask, file: UploadFile) => {
-  // console.log('===TaskProgress', task)
-  $(`#${task.id} .task-progress`).html(String(progress))
+uploader.on(EventType.TaskProgress, (task: UploadTask, file: UploadFile, progress: number) => {
+  console.log('===TaskProgress', progress)
+  $(`#${task.id} .task-progress`).html(String(task.progress))
   $(`#${task.id} .task-status`).html(task.status)
 })
 uploader.on(EventType.TaskComplete, (task: UploadTask) => {
@@ -211,7 +193,10 @@ uploader.on(EventType.TaskError, (task: UploadTask) => {
 })
 uploader.on(EventType.Complete, () => {
   console.warn('Complete--------------------------------------------------------------------')
-  uploader.clear()
+  // uploader.clear()
+})
+uploader.on(EventType.FileComplete, (...args) => {
+  console.log('===FileComplete', ...args)
 })
 
 setTimeout(() => {
@@ -237,19 +222,6 @@ setTimeout(() => {
   })
 })
 
-console.log(Object.keys(EventType))
+console.log(Object.values(EventType))
 
 Object.assign(window, { up: uploader })
-
-ajaxGetJSON('http://ecm.test.work.zving.com/heartbeat').subscribe(console.log)
-
-// ajaxPost('http://ecm.test.work.zving.com/catalogs/4751/files/upload').subscribe(console.log)
-
-// let sub: Nullable<Subscription> = scheduled([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], animationFrameScheduler).subscribe({
-//   next: console.warn,
-//   complete: () => {
-//     console.log('complete')
-//     sub = (sub?.unsubscribe() as any) as null
-//     console.log('🚀 ~ file: test.ts ~ line 256 ~ letsub:Nullable<Subscription>=scheduled ~ sub', sub)
-//   },
-// })

@@ -154,7 +154,7 @@ export class CommonsTaskHandler extends TaskHandler {
 
         //  hash计算前后hook
         const { beforeFileHashCompute } = this.uploaderOptions
-        const beforeCompute = beforeFileHashCompute?.(uploadFile, task) || Promise.resolve()
+        const beforeCompute = beforeFileHashCompute?.(task, uploadFile) || Promise.resolve()
         return from(beforeCompute).pipe(
           concatMap(() => {
             // 使用线程池计算hash
@@ -164,7 +164,7 @@ export class CommonsTaskHandler extends TaskHandler {
       }),
       concatMap((uploadFile: UploadFile) => {
         // 文件上传开始前hook
-        const beforeFileUploadStart = uploaderOptions.beforeFileUploadStart?.(uploadFile, task) || Promise.resolve()
+        const beforeFileUploadStart = uploaderOptions.beforeFileUploadStart?.(task, uploadFile) || Promise.resolve()
         return from(beforeFileUploadStart).pipe(mapTo(uploadFile))
       }),
       filter((uploadFile: UploadFile) => uploadFile.status !== StatusCode.Complete), // 再次过滤成功的文件
@@ -213,6 +213,9 @@ export class CommonsTaskHandler extends TaskHandler {
       tap(({ uploadFile, chunkResponses }) => {
         console.log('🚀 ~  upload complete', uploadFile, chunkResponses)
         // 文件上传完成事件
+        uploadFile.response = chunkResponses?.length
+          ? chunkResponses[chunkResponses.length - 1]?.response?.response
+          : uploadFile.response
         this.changeUploadFileStatus(uploadFile, StatusCode.Complete)
         this.emit(EventType.FileComplete, this.task, uploadFile, chunkResponses)
       }),
@@ -254,10 +257,11 @@ export class CommonsTaskHandler extends TaskHandler {
           map((response: AjaxResponse) => ({ chunk, response } as ChunkResponse)),
         )
       }, concurrency || 1),
-      tap((chunkResponse: ChunkResponse) => {
-        console.log('🚀 ~ chunk upload complete', uploadFile.name, chunkResponse)
-        this.changeFileChunkStatus(chunkResponse.chunk, StatusCode.Complete)
-        this.emit(EventType.ChunkComplete, this.task, uploadFile, chunkResponse.chunk, chunkResponse.response)
+      tap(({ chunk, response }) => {
+        console.log('🚀 ~ chunk upload complete', uploadFile.name, chunk, response)
+        this.changeFileChunkStatus(chunk, StatusCode.Complete)
+        chunk.response = response?.response
+        this.emit(EventType.ChunkComplete, this.task, uploadFile, chunk, response)
       }),
       reduce((acc: ChunkResponse[], v: ChunkResponse) => (acc.push(v) ? acc : acc), []), // 收集response
     )
@@ -276,13 +280,13 @@ export class CommonsTaskHandler extends TaskHandler {
         const progressSubscriber = new ProgressSubscriber(this.progressSubject, this.task, upFile, chunk) // 进度订阅
         // 上传请求发送前hook
         const { beforeUploadRequestSend } = this.uploaderOptions
-        const beforeSend = beforeUploadRequestSend?.(res, upFile, this.task) || Promise.resolve()
-        return from(beforeSend).pipe(concatMap(() => this.sendRequest(res, progressSubscriber)))
+        const beforeSend = beforeUploadRequestSend?.(this.task, upFile, chunk, res) || Promise.resolve()
+        return from(beforeSend).pipe(concatMap(() => this.sendRequest(upFile, chunk, res, progressSubscriber)))
       }),
       concatMap((response: AjaxResponse) => {
         // 上传响应数据处理前hook
         const { beforeUploadResponseProcess } = this.uploaderOptions
-        const beforeProcess = beforeUploadResponseProcess?.(response, chunk, upFile, this.task) || Promise.resolve()
+        const beforeProcess = beforeUploadResponseProcess?.(this.task, upFile, chunk, response) || Promise.resolve()
         return from(beforeProcess).pipe(mapTo(response))
       }),
       tap((response: AjaxResponse) => {
@@ -299,10 +303,17 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private sendRequest (res: RequestOpts, progressSubscriber?: ProgressSubscriber): Observable<AjaxResponse> {
+  private sendRequest (
+    upfile: UploadFile,
+    chunk: FileChunk,
+    requestOpts: RequestOpts,
+    progressSubscriber?: ProgressSubscriber,
+  ): Observable<AjaxResponse> {
     const { requestOptions, requestBodyProcessFn } = this.uploaderOptions
-    const { url, headers, body } = res
-    const processRequestBody$ = this.toObserverble(requestBodyProcessFn?.(body) || this.toFormData(body))
+    const { url, headers, body } = requestOpts
+    const processRequestBody$ = this.toObserverble(
+      requestBodyProcessFn?.(this.task, upfile, chunk, body) || this.toFormData(body),
+    )
     return processRequestBody$.pipe(
       concatMap((body) =>
         ajax({
@@ -346,7 +357,7 @@ export class CommonsTaskHandler extends TaskHandler {
     return new Observable((ob: Subscriber<UploadFormData>) => {
       const { beforeFileRead } = this.uploaderOptions
       // 文件读取前后hook
-      const beforeRead = beforeFileRead?.(chunk, uploadFile, this.task) || Promise.resolve()
+      const beforeRead = beforeFileRead?.(this.task, uploadFile, chunk) || Promise.resolve()
       const shouldComputeChunkHash: boolean = !!this.uploaderOptions.computeChunkHash
       const sub = from(beforeRead)
         .pipe(

@@ -12,7 +12,7 @@ export const fileFactory = (file: File): UploadFile => {
     type: file.type,
     lastModified: file.lastModified,
     raw: file.slice(0, file.size, file.type),
-    path: file['path'],
+    path: file['path'] || '',
     relativePath: normalizePath(file['relativePath'] || file['webkitRelativePath'] || file['name']),
 
     uploaded: 0,
