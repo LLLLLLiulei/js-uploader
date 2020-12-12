@@ -1,15 +1,19 @@
 export default `
 (function () {
   var $this = typeof window == 'undefined' ? self : window
-  var spark = new $this.SparkMD5.ArrayBuffer()
-  console.log($this, $this.SparkMD5)
   $this.onmessage = function (e) {
     console.log(e)
     var data = e.data
     if (!data) {
       return
     }
+    $this.shouldAbort = data.action=="abort"
+    if($this.shouldAbort){
+      return
+    }
+
     console.time('computehash-worker')
+   
     var file = data
     var currentChunk = 0
     var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice
@@ -18,6 +22,7 @@ export default `
     var fileSize = !isArrayBuffer ? file.size : file.byteLength
     var chunks = Math.ceil(fileSize / chunkSize)
     var fileReader
+    var spark = new $this.SparkMD5.ArrayBuffer()
     var calc = function (data) {
       console.log('read chunk nr', currentChunk + 1, 'of', chunks)
       spark.append(data)
@@ -41,7 +46,18 @@ export default `
         console.warn('oops, something went wrong.', e)
       }
     }
+    var checkAbort = function(){
+      if($this.shouldAbort){
+        fileReader.abort()
+        spark.destroy()
+        fileReader=spark=data=file=null
+        return true
+      }
+    }
     var loadNext = function () {
+      if(checkAbort()){
+        return
+      }
       var start = currentChunk * chunkSize
       var end = start + chunkSize >= fileSize ? fileSize : start + chunkSize
       if (isArrayBuffer) {

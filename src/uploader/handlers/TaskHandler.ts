@@ -22,9 +22,8 @@ export default abstract class TaskHandler extends Base {
   abstract retry (): this
   abstract abort (): this
 
-  protected computeFileHash (file: Blob | ArrayBuffer, algorithm?: string): Observable<string> {
+  protected computeFileHash (file: Blob | ArrayBuffer): Observable<string> {
     return new Observable((ob: Subscriber<string>) => {
-      algorithm = algorithm || 'md5'
       const sparkMd5 = new SparkMD5.ArrayBuffer()
       let fileReader: Nullable<FileReader>
       const calc = (data: ArrayBuffer) => {
@@ -66,7 +65,7 @@ export default abstract class TaskHandler extends Base {
           .subscribe(ob as PartialObserver<any>)
       }
       return () => {
-        result?.cancel?.()
+        result?.abort?.()
         sub?.unsubscribe()
         sub = null
       }

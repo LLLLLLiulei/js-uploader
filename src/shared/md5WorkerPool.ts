@@ -42,7 +42,7 @@ class MD5Worker extends Worker {
 
 interface WorkResult {
   promise: Nullable<Promise<string>>
-  cancel: () => void
+  abort: () => void
 }
 class MD5WorkerPool {
   public execute (data: Blob | ArrayBuffer): WorkResult
@@ -66,14 +66,17 @@ class MD5WorkerPool {
     }
     return {
       promise: promise || null,
-      cancel: () => {
+      abort: () => {
         let index = taskQueue.findIndex((tsk) => tsk === task)
         index !== -1 && taskQueue.splice(index, 1)
         if (task.workerID) {
-          index = workers.findIndex((w) => w.id === task.workerID)
-          index !== -1 && workers.splice(index, 1)[0].terminate()
+          let worker = workers.find((w) => w.id === task.workerID)
+          if (worker) {
+            console.warn('abort worker')
+            worker.postMessage({ action: 'abort' })
+            worker.execute()
+          }
         }
-        MD5WorkerPool.getWorker()?.execute()
       },
     }
   }
