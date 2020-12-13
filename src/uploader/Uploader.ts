@@ -2,7 +2,7 @@ import { ID, StatusCode, EventType, UploaderOptions, UploadFile, UploadTask } fr
 import { fileFactory } from './helpers/file-factory'
 import { FileStore, Storage, FileDragger, FilePicker } from './modules'
 import { handle as handleTask } from './handlers'
-import { tap, map, concatMap, mapTo, mergeMap, filter, first, switchMap, takeUntil } from 'rxjs/operators'
+import { tap, map, concatMap, mapTo, mergeMap, filter, first, switchMap, takeUntil, last } from 'rxjs/operators'
 import {
   from,
   Observable,
@@ -16,6 +16,7 @@ import {
   animationFrameScheduler,
   scheduled,
   asapScheduler,
+  Subscriber,
 } from 'rxjs'
 import TaskHandler from './handlers/TaskHandler'
 import Base from './Base'
@@ -53,6 +54,7 @@ export class Uploader extends Base {
 
   private action: Subject<string> = new Subject<string>()
   private pause$ = this.action.pipe(filter((v) => v === 'pause'))
+  private clear$ = this.action.pipe(filter((v) => v === 'clear'))
 
   constructor (options?: UploaderOptions) {
     super()
@@ -199,10 +201,16 @@ export class Uploader extends Base {
   }
 
   cancel (task?: UploadTask): void {
-    task ? this.removeTask(task) : this.clear()
+    if (task) {
+      this.action.next('cancel')
+      this.removeTask(task)
+    } else {
+      this.clear()
+    }
   }
 
   clear (): void {
+    this.action.next('clear')
     const unsubscribe = () => {
       this.uploadSubscription?.unsubscribe()
       this.uploadSubscription = null
@@ -217,7 +225,7 @@ export class Uploader extends Base {
       } while (queue.length && timeRemaining && timeRemaining?.())
       queue.length ? scheduleWork(fn) : unsubscribe()
     }
-    fn()
+    scheduleWork(fn)
   }
 
   isUploading (): boolean {
@@ -236,7 +244,8 @@ export class Uploader extends Base {
   }
 
   isComplete (): boolean {
-    return !this.isUploading()
+    let status = [StatusCode.Uploading, StatusCode.Waiting, StatusCode.Pause]
+    return !this.taskQueue.some((task) => status.includes(task.status))
   }
 
   destory (): void {
@@ -337,7 +346,7 @@ export class Uploader extends Base {
             }
             list.length ? scheduleWork(fn) : resolve(taskList)
           }
-          fn()
+          scheduleWork(fn)
         })
         .catch((e) => reject(e))
     })
@@ -373,12 +382,17 @@ export class Uploader extends Base {
         merge(...obs)
           .pipe(
             concatMap((files: File[]) => {
-              // 选择文件后添加文件前hook
-              const beforeAdd = this.options.beforeFilesAdd?.(files) || Promise.resolve()
-              return from(beforeAdd).pipe(mapTo(files))
-            }),
-            concatMap((files: File[]) => {
-              return from(this.addFilesAsync(...files)).pipe(map((tasks) => ({ files, tasks })))
+              return of(files).pipe(
+                concatMap((files: File[]) => {
+                  // 选择文件后添加文件前hook
+                  const beforeAdd = this.options.beforeFilesAdd?.(files) || Promise.resolve()
+                  return from(beforeAdd).pipe(mapTo(files))
+                }),
+                concatMap((files: File[]) => {
+                  return from(this.addFilesAsync(...files)).pipe(map((tasks) => ({ files, tasks })))
+                }),
+                takeUntil(this.clear$),
+              )
             }),
           )
           .subscribe(),
@@ -402,7 +416,7 @@ export class Uploader extends Base {
       const { fileFilter } = this.options
       files.forEach((file) => {
         let ignored = false
-        let fileName = typeof file === 'string' ? '' : file.name // TODO
+        let fileName = file.name
         if (fileFilter instanceof RegExp) {
           ignored = !fileFilter.test(fileName)
         } else if (typeof fileFilter === 'function') {
@@ -411,14 +425,17 @@ export class Uploader extends Base {
         !ignored && filelist.push(fileFactory(file))
       })
       console.log('Uploader -> addFile -> filelist', filelist)
-      const tasks = this.generateTask(...filelist)
-      console.log(this.taskQueue)
-      const resolveTask = (tasks: UploadTask[]) => {
-        resolve(tasks)
-      }
-      this.options.resumable
-        ? this.presistTask(...tasks).subscribe(() => resolveTask(tasks), reject)
-        : resolveTask(tasks)
+      this.generateTask(...filelist)
+        .toPromise()
+        .then((tasks) => {
+          console.log(this.taskQueue)
+          const resolveTask = (tasks: UploadTask[]) => {
+            resolve(tasks)
+          }
+          this.options.resumable
+            ? this.presistTask(...tasks).subscribe(() => resolveTask(tasks), reject)
+            : resolveTask(tasks)
+        })
     })
   }
 
@@ -448,7 +465,7 @@ export class Uploader extends Base {
 
       const { fileFilter } = this.options
       const tasks: UploadTask[] = []
-      const fn = (timeRemaining?: () => number) => {
+      const fn = async (timeRemaining?: () => number) => {
         while (files.length) {
           console.log(files.length)
           const filelist: UploadFile[] = []
@@ -463,7 +480,7 @@ export class Uploader extends Base {
               filelist.push(fileFactory(file))
             }
           })
-          const currentTasks: UploadTask[] = this.generateTask(...filelist)
+          const currentTasks: UploadTask[] = await this.generateTask(...filelist).toPromise()
           tasks.push(...currentTasks)
           if (!timeRemaining || !timeRemaining?.()) {
             break
@@ -471,45 +488,70 @@ export class Uploader extends Base {
         }
         files.length ? scheduleWork(fn) : finish(tasks)
       }
-      fn()
+      scheduleWork(fn)
     })
   }
 
-  private generateTask (...fileList: UploadFile[]): UploadTask[] {
-    const taskList: UploadTask[] = []
-    const ossOptions = this.options?.ossOptions
-    fileList.forEach((file: UploadFile) => {
-      let pos = file.relativePath.indexOf('/')
-      let { singleFileTask } = this.options
-      let newTask: Nullable<UploadTask> = null
-      let inFolder = !this.options.singleFileTask && pos !== -1
-      if (!inFolder) {
-        newTask = taskFactory(file, singleFileTask)
-      } else {
-        let parentPath: string = file.relativePath.substring(0, pos)
-        let existsTask: UploadTask | undefined = this.taskQueue.find((tsk) => {
-          return tsk.fileIDList.some((id) => FileStore.get(id)?.relativePath.startsWith(parentPath))
+  private generateTask (...fileList: UploadFile[]): Observable<UploadTask[]> {
+    return new Observable((subscriber: Subscriber<UploadTask[]>) => {
+      const { ossOptions, singleFileTask } = this.options
+      const updateTasks: UploadTask[] = []
+      const newTasks: UploadTask[] = []
+      const notifier: Subject<void> = new Subject()
+      const sub: Subscription = from(fileList)
+        .pipe(
+          tap((file: UploadFile) => {
+            let pos = file.relativePath.indexOf('/')
+            let newTask: Nullable<UploadTask> = null
+            let inFolder = !this.options.singleFileTask && pos !== -1
+            if (!inFolder) {
+              newTask = taskFactory(file, singleFileTask)
+            } else {
+              let parentPath: string = file.relativePath.substring(0, pos)
+              let existsTask: UploadTask | undefined = this.taskQueue.find((tsk) => {
+                return tsk.fileIDList.some((id) => FileStore.get(id)?.relativePath.startsWith(parentPath))
+              })
+              if (existsTask) {
+                existsTask.fileIDList.push(file.id)
+                existsTask.filSize += file.size
+                !newTasks.some((tsk) => tsk.id === existsTask?.id) && newTasks.push(existsTask)
+                updateTasks.push(existsTask)
+              } else {
+                newTask = taskFactory(file, singleFileTask)
+              }
+            }
+            if (newTask) {
+              newTask.oss = ossOptions?.enable ? ossOptions?.type : newTask.oss
+              newTask.type = this.options.singleFileTask ? 'file' : newTask.type
+              newTasks.push(newTask)
+            }
+          }),
+          last(),
+          concatMap(() => from(this.options.filesAdded?.(fileList) || Promise.resolve())),
+          tap(() => {
+            // 任务创建事件
+            newTasks.forEach((task) => {
+              this.emit(EventType.TaskCreated, task)
+              this.taskQueue.push(task)
+            })
+            // 任务更新事件
+            updateTasks.forEach((task) => this.emit(EventType.TaskUpdate, task))
+          }),
+          takeUntil(notifier),
+        )
+        .subscribe({
+          complete () {
+            subscriber.next(newTasks)
+            subscriber.complete()
+          },
+          error: (e) => subscriber.error(e),
         })
-        if (existsTask) {
-          // TODO
-          existsTask.fileIDList.push(file.id)
-          existsTask.filSize += file.size
-          !taskList.some((tsk) => tsk.id === existsTask?.id) && taskList.push(existsTask)
-          this.emit(EventType.TaskUpdate, existsTask)
-        } else {
-          newTask = taskFactory(file, singleFileTask)
-        }
-      }
-      if (newTask) {
-        newTask.oss = ossOptions?.enable ? ossOptions?.type : newTask.oss
-        newTask.type = this.options.singleFileTask ? 'file' : newTask.type
-        taskList.push(newTask)
-        this.taskQueue.push(newTask)
-        // 任务创建事件
-        this.emit(EventType.TaskCreated, newTask)
+
+      return () => {
+        notifier?.next()
+        notifier?.unsubscribe()
+        sub?.unsubscribe()
       }
     })
-
-    return taskList
   }
 }

@@ -1,5 +1,5 @@
 import { Uploader } from './uploader'
-import { BaseParams, EventType, FileChunk, ID, UploadFile, UploadTask } from './types'
+import { AjaxResponse, BaseParams, EventType, FileChunk, StringKeyObject, UploadFile, UploadTask } from './types'
 import * as $ from 'jquery'
 import { ajax } from 'rxjs/ajax'
 import { Observable } from 'rxjs'
@@ -32,63 +32,71 @@ const uploader = Uploader.create({
     },
   },
   requestOptions: {
-    url: (task: UploadTask, uploadfile: UploadFile) => {
-      // console.log('serverURL', task, uploadfile)
-      // return 'http://10.2.45.100:2081/catalogs/1102/files/upload'
-      return 'http://ecm.test.work.zving.com/catalogs/4751/files/upload'
-    },
-    headers: (task: UploadTask, uploadfile: UploadFile) => {
-      // console.log('requestHeaders', task, uploadfile)
-      return {
-        CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
-        TOKEN:
-          'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwNzc2NDI3NCwiaWF0IjoxNjA3MTU5NDc0LCJqdGkiOiJkODM5ZmI5YWY5M2M0NzVlODUwODE1YmUxM2M3YzQxOSJ9.G9iSOi6JQRXYQRtXpWuiVF7lfWs6xv7IsZZUDCLb32A',
-        GUID: 'b1da407ce0a5408b847f4151d41783ff',
-      }
-    },
-    body: (task: UploadTask, uploadfile: UploadFile, baseParams: BaseParams) => {
-      console.log('requestParams', task, uploadfile)
-      return Object.assign(baseParams, {
-        chunkNumber: baseParams.chunkIndex + 1,
-        identifier: uploadfile.id,
-        filename: uploadfile.name,
-        totalChunks: uploadfile.chunkIDList?.length,
+    url: (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      return new Promise((resolve, reject) => {
+        console.log('🚀 ~ requestOptions - url ', task, upfile, chunk)
+        setTimeout(() => {
+          resolve('http://ecm.test.work.zving.com/catalogs/4751/files/upload')
+        }, 1000)
       })
+      // console.log('🚀 ~ requestOptions - url ', task, upfile, chunk)
+      // return 'http://ecm.test.work.zving.com/catalogs/4751/files/upload'
+    },
+    headers: (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      return new Promise((resolve, reject) => {
+        console.log('🚀 ~ requestOptions - headers ', task, upfile, chunk)
+        setTimeout(() => {
+          resolve({
+            CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
+            TOKEN:
+              'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJhZG1pbiIsImV4cCI6MTYwODE4MzcwNywiaWF0IjoxNjA3NTc4OTA3LCJqdGkiOiI2Zjc5YTE2ODg0MzU0MGNhYWMzNzJmOGU0YWU2OGU3ZiJ9.6SfBHOOaLVamguqpZgh2r9Zvd2pR_LqVvqGlOcAdan8',
+            GUID: 'b1da407ce0a5408b847f4151d41783ff',
+          })
+        }, 1000)
+      })
+      // return {
+      //   CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
+      //   TOKEN:
+      //     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwNzc2NDI3NCwiaWF0IjoxNjA3MTU5NDc0LCJqdGkiOiJkODM5ZmI5YWY5M2M0NzVlODUwODE1YmUxM2M3YzQxOSJ9.G9iSOi6JQRXYQRtXpWuiVF7lfWs6xv7IsZZUDCLb32A',
+      //   GUID: 'b1da407ce0a5408b847f4151d41783ff',
+      // }
+    },
+    body: (task: UploadTask, uploadfile: UploadFile, chunk: FileChunk, baseParams: StringKeyObject) => {
+      return new Promise((resolve, reject) => {
+        console.log('🚀 ~ requestOptions - headers ', task, uploadfile, chunk, baseParams)
+        setTimeout(() => {
+          resolve(
+            Object.assign(baseParams, {
+              chunkNumber: baseParams.chunkIndex + 1,
+              identifier: uploadfile.id,
+              filename: uploadfile.name,
+              totalChunks: uploadfile.chunkIDList?.length,
+            }),
+          )
+        }, 1000)
+      })
+
+      // return Object.assign(baseParams, {
+      //   chunkNumber: baseParams.chunkIndex + 1,
+      //   identifier: uploadfile.id,
+      //   filename: uploadfile.name,
+      //   totalChunks: uploadfile.chunkIDList?.length,
+      // })
     },
   },
-  requestBodyProcessFn () {},
-  beforeFileHashCompute (task: UploadTask, file: UploadFile) {
-    return new Promise((resolve, reejct) => {
-      console.log('beforeFileHashCompute -> file', file, task)
-      let num = 5
-      let timer = setInterval(() => {
-        console.log('beforeFileHashCompute', num--)
-        if (num < 0) {
-          clearInterval(timer)
-          resolve()
-        }
-      }, 1000)
-    })
-  },
-  beforeUploadRequestSend (v, file, task) {
-    console.log('beforeUploadRequestSend -> v,file,task', v, file, task)
-  },
-  readFileFn: function (task: UploadTask, uploadfile: UploadFile, start?: number, end?: number) {
-    return new Promise((resolve, reject) => {
-      resolve(uploadfile.raw?.slice(start, end))
-    })
-  },
-  autoUpload: false,
   singleFileTask: true,
-  skipFileWhenUploadError: false,
-  chunkSize: 4 * 1024 ** 2,
   computeFileHash: true,
   computeChunkHash: true,
-  resumable: false,
-  chunkConcurrency: 20,
-  taskConcurrency: 5,
-  maxRetryTimes: 1,
-  retryInterval: 1000,
+  autoUpload: false,
+  maxRetryTimes: 3,
+  retryInterval: 3000,
+  resumable: true,
+  chunked: true,
+  chunkSize: 4 * 1024 ** 2,
+  chunkConcurrency: 2,
+  taskConcurrency: 2,
+  skipFileWhenUploadError: false,
+  skipTaskWhenUploadError: false,
   filePicker: [
     { $el: document.querySelector('#fileInput') as HTMLInputElement, directory: false, multiple: true },
     { $el: document.querySelector('#fileInput1') as HTMLInputElement, directory: true, multiple: true },
@@ -96,19 +104,124 @@ const uploader = Uploader.create({
   fileDragger: {
     $el: document.body,
     onDragenter: (e) => {
-      // $('#file-dragger').html('松开鼠标上传')
+      // console.log('🚀 ~ onDragenter ~ e', e)
     },
     onDragleave: (e) => {
-      // $('#file-dragger').html('拖拽文件到此处上传')
+      // console.log('🚀 ~ onDragleave ~ e', e)
     },
     onDrop: (e) => {
-      console.log(e)
-      // $('#file-dragger').html('拖拽文件到此处上传')
+      console.log('🚀 ~ onDrop ~ e', e)
     },
   },
-  fileFilter: (name) => !/\.DS_Store/.test(name),
+  fileFilter (name, file) {
+    console.log('🚀 ~ fileFilter ', arguments)
+    return !/\.DS_Store/.test(name)
+  },
+  readFileFn (task: UploadTask, upfile: UploadFile, start?: number, end?: number) {
+    console.log('🚀 ~ readFileFn', arguments)
+    return new Promise((resolve, reject) => {
+      resolve(upfile.raw!.slice(start, end))
+    })
+  },
+  requestBodyProcessFn (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: StringKeyObject) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ requestBodyProcessFn ', arguments)
+      setTimeout(() => {
+        const formData = new FormData()
+        Object.keys(params).forEach((k) => formData.append(k, params[k]))
+        resolve(formData)
+      }, 1000)
+    })
+  },
+  beforeFilesAdd (files: File[]) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ beforeFilesAdd ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  filesAdded (files: UploadFile[]) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ filesAdded ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  beforeTasksAdd (tasks: UploadTask[]) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ beforeTasksAdd ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  beforeTaskStart (task: UploadTask) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ beforeTaskStart ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  beforeFileUploadStart (task: UploadTask, file: UploadFile) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ beforeFileUploadStart ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  beforeFileHashCompute (task: UploadTask, file: UploadFile) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ beforeFileHashCompute ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  fileHashComputed (task: UploadTask, file: UploadFile, hash: string) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ fileHashComputed ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  beforeFileRead (task: UploadTask, file: UploadFile, chunk: FileChunk) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ beforeFileRead ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  fileReaded (task: UploadTask, file: UploadFile, chunk: FileChunk, data: Blob) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ fileReaded ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  beforeUploadRequestSend (task: UploadTask, file: UploadFile, chunk: FileChunk, requestParams: StringKeyObject) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ beforeUploadRequestSend ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
+  beforeUploadResponseProcess (task: UploadTask, file: UploadFile, chunk: FileChunk, response: AjaxResponse) {
+    return new Promise((resolve) => {
+      console.log('🚀 ~ beforeUploadResponseProcess ', arguments)
+      setTimeout(() => {
+        resolve('')
+      }, 1000)
+    })
+  },
 })
-console.log('uploader', uploader)
 
 const taskMap = {}
 const appendHtml = (task: UploadTask) => {
@@ -136,6 +249,8 @@ const appendHtml = (task: UploadTask) => {
     $('#task-container').append(html)
     setTimeout(() => {
       $(`#${task.id} .uploadBtn`).on('click', (e: JQuery.ClickEvent) => {
+        console.log('🚀 ~ file: test.ts ~ line 175 ~ e', e)
+        console.log('🚀 ~ file: test.ts ~ line 175 ~ e', e)
         let taskID = $(e.target).attr('taskID') as string
         let task = taskMap[taskID]
         uploader.upload(task)
@@ -165,6 +280,7 @@ const appendHtml = (task: UploadTask) => {
 }
 uploader.on(EventType.TaskCreated, appendHtml)
 uploader.on(EventType.TaskRestore, appendHtml)
+
 uploader.on(EventType.TaskUploadStart, (task: UploadTask) => {
   $(`#${task.id} .task-status`).html(task.status)
 })
@@ -172,31 +288,31 @@ uploader.on(EventType.TaskWaiting, (task: UploadTask) => {
   $(`#${task.id} .task-status`).html(task.status)
 })
 uploader.on(EventType.TaskProgress, (task: UploadTask, file: UploadFile, progress: number) => {
-  console.log('===TaskProgress', progress)
+  // console.log('===TaskProgress', progress)
   $(`#${task.id} .task-progress`).html(String(task.progress))
   $(`#${task.id} .task-status`).html(task.status)
 })
 uploader.on(EventType.TaskComplete, (task: UploadTask) => {
-  console.log('===TaskComplete', task)
+  // console.log('===TaskComplete', task)
   $(`#${task.id} .task-status`).html(task.status)
 })
 uploader.on(EventType.TaskPause, (task: UploadTask) => {
-  console.log('===TaskPaused', task)
+  // console.log('===TaskPaused', task)
   $(`#${task.id} .task-status`).html(task.status)
 })
 uploader.on(EventType.TaskCancel, (task: UploadTask) => {
-  console.log('===TaskCanceled', task)
+  // console.log('===TaskCanceled', task)
   $(`#${task.id}`).remove()
 })
 uploader.on(EventType.TaskError, (task: UploadTask) => {
   $(`#${task.id} .task-status`).html(task.status)
 })
 uploader.on(EventType.Complete, () => {
-  console.warn('Complete--------------------------------------------------------------------')
+  // console.warn('Complete--------------------------------------------------------------------')
   // uploader.clear()
 })
 uploader.on(EventType.FileComplete, (...args) => {
-  console.log('===FileComplete', ...args)
+  // console.log('===FileComplete', ...args)
 })
 
 setTimeout(() => {
@@ -222,6 +338,10 @@ setTimeout(() => {
   })
 })
 
-console.log(Object.values(EventType))
-
 Object.assign(window, { up: uploader })
+
+Object.values(EventType).forEach((evt) => {
+  uploader.on(evt, function () {
+    console.warn(evt, arguments)
+  })
+})

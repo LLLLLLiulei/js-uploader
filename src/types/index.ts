@@ -69,7 +69,7 @@ export type Protocol = 'http:' | 'https:'
 
 export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
-export type OSS = false | 'qiniu'
+export type OSS = false | 'qiniu' | 'aws-s3'
 
 export type StringKeyObject = { [key: string]: any }
 
@@ -223,10 +223,17 @@ export interface OssOptions {
 export interface RequestOptions {
   // 上传请求url
   url: string | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => string | Promise<string>)
-  headers?: StringKeyObject | ((task: UploadTask, upfile: UploadFile) => StringKeyObject | Promise<StringKeyObject>)
+  headers?:
+    | StringKeyObject
+    | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => StringKeyObject | Promise<StringKeyObject>)
   body?:
     | StringKeyObject
-    | ((task: UploadTask, upfile: UploadFile, params: StringKeyObject) => StringKeyObject | Promise<StringKeyObject>)
+    | ((
+        task: UploadTask,
+        upfile: UploadFile,
+        chunk: FileChunk,
+        params: StringKeyObject,
+      ) => StringKeyObject | Promise<StringKeyObject>)
   timeout?: number
   withCredentials?: boolean
 }
@@ -294,8 +301,12 @@ export interface UploaderOptions {
   ) => Promise<any> | any
 
   // 文件添加前（选择文件后）
-  beforeFilesAdd?: (files: Array<File>) => MaybePromise
+  beforeFilesAdd?: (files: File[]) => MaybePromise
+  // 文件添加后
   filesAdded?: (files: UploadFile[]) => MaybePromise
+
+  // 任务添加前
+  beforeTasksAdd?: (tasks: UploadTask[]) => MaybePromise
 
   // 任务开始前
   beforeTaskStart?: (task: UploadTask) => MaybePromise
@@ -305,10 +316,12 @@ export interface UploaderOptions {
 
   // 文件hash计算前（如需计算hash）
   beforeFileHashCompute?: (task: UploadTask, file: UploadFile) => MaybePromise
+  // hash计算后
   fileHashComputed?: (task: UploadTask, file: UploadFile, hash: string) => MaybePromise
 
   // 文件读取前（分片读取）
   beforeFileRead?: (task: UploadTask, file: UploadFile, chunk: FileChunk) => MaybePromise
+  // 文件读取后
   fileReaded?: (task: UploadTask, file: UploadFile, chunk: FileChunk, data: Blob) => MaybePromise
 
   // 上传请求发送前
@@ -346,6 +359,9 @@ export interface ProgressPayload {
   event: ProgressEvent
 }
 
+/**
+ * request基本参数
+ */
 export interface BaseParams {
   // 当前分片索引 0开始
   chunkIndex: number

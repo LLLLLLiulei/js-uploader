@@ -25,7 +25,18 @@ import {
   scheduled,
   animationFrameScheduler,
 } from 'rxjs'
-import { tap, map, concatMap, filter, catchError, mergeMap, mapTo, switchMap, reduce } from 'rxjs/operators'
+import {
+  tap,
+  map,
+  concatMap,
+  filter,
+  catchError,
+  mergeMap,
+  mapTo,
+  switchMap,
+  reduce,
+  distinctUntilChanged,
+} from 'rxjs/operators'
 import { ajax, AjaxResponse } from 'rxjs/ajax'
 import { retryWithDelay } from '../../operators/retry-with-delay'
 import { assert } from '../../utils/assert'
@@ -48,6 +59,7 @@ export class CommonsTaskHandler extends TaskHandler {
     task.fileList?.forEach((file) => {
       let status = file.status === StatusCode.Complete ? file.status : StatusCode.Pause
       this.changeUploadFileStatus(file, status)
+      this.presistFileOnly(file)
     })
     this.emit(EventType.TaskPause, this.task)
     return this
@@ -153,12 +165,17 @@ export class CommonsTaskHandler extends TaskHandler {
         }
 
         //  hash计算前后hook
-        const { beforeFileHashCompute } = this.uploaderOptions
+        const { beforeFileHashCompute, fileHashComputed } = this.uploaderOptions
         const beforeCompute = beforeFileHashCompute?.(task, uploadFile) || Promise.resolve()
         return from(beforeCompute).pipe(
           concatMap(() => {
             // 使用线程池计算hash
             return this.computeFileMd5ByWorker(uploadFile).pipe(map((hash) => Object.assign(uploadFile, { hash })))
+          }),
+          concatMap((uploadFile: UploadFile) => {
+            // hash计算后
+            const computed = fileHashComputed?.(task, uploadFile, uploadFile.hash) || Promise.resolve()
+            return from(computed).pipe(mapTo(uploadFile))
           }),
         )
       }),
@@ -263,6 +280,7 @@ export class CommonsTaskHandler extends TaskHandler {
         chunk.response = response?.response
         this.emit(EventType.ChunkComplete, this.task, uploadFile, chunk, response)
       }),
+      concatMap((res: ChunkResponse) => from(this.presistChunkOnly(res.chunk)).pipe(mapTo(res))),
       reduce((acc: ChunkResponse[], v: ChunkResponse) => (acc.push(v) ? acc : acc), []), // 收集response
     )
   }
@@ -271,7 +289,7 @@ export class CommonsTaskHandler extends TaskHandler {
     // 获取http请求相关配置
     const requestOptions$: Observable<RequestOpts> = forkJoin([
       this.getServerURL(upFile, chunk),
-      this.getRequestHeaders(upFile),
+      this.getRequestHeaders(upFile, chunk),
       this.getRequestBody(upFile, params, chunk),
     ]).pipe(map(([url = 0, headers = 1, body = 2]) => ({ url, headers, body } as RequestOpts)))
 
@@ -355,13 +373,18 @@ export class CommonsTaskHandler extends TaskHandler {
     chunk: FileChunk,
   ): Observable<UploadFormData> {
     return new Observable((ob: Subscriber<UploadFormData>) => {
-      const { beforeFileRead } = this.uploaderOptions
+      const { beforeFileRead, fileReaded } = this.uploaderOptions
       // 文件读取前后hook
       const beforeRead = beforeFileRead?.(this.task, uploadFile, chunk) || Promise.resolve()
       const shouldComputeChunkHash: boolean = !!this.uploaderOptions.computeChunkHash
       const sub = from(beforeRead)
         .pipe(
           concatMap(() => this.readFile(uploadFile, chunk.start, chunk.end)),
+          concatMap((data: Blob) => {
+            // 文件读取后
+            const readed = fileReaded?.(this.task, uploadFile, chunk, data) || Promise.resolve()
+            return from(readed).pipe(mapTo(data))
+          }),
           concatMap((data: Blob) => {
             const hash$ = shouldComputeChunkHash ? this.computeFileHash(data) : of(chunk.hash || '')
             return hash$.pipe(map((hash: string) => Object.assign(chunk, { hash, data })))
@@ -372,7 +395,7 @@ export class CommonsTaskHandler extends TaskHandler {
               chunkHash: chunk.hash,
               file: chunk.data,
             })
-            return this.prepareRequestParamsForChunk(uploadFile, uploadParams)
+            return this.prepareRequestParamsForChunk(uploadFile, chunk, uploadParams)
           }),
         )
         .subscribe(ob)
@@ -382,17 +405,18 @@ export class CommonsTaskHandler extends TaskHandler {
 
   private prepareRequestParamsForChunk (
     uploadFile: UploadFile,
+    chunk: FileChunk,
     uploadParams: UploadFormData,
   ): Observable<UploadFormData> {
-    return this.getRequestParams(uploadFile, uploadParams).pipe(
+    return this.getRequestParams(uploadFile, chunk, uploadParams).pipe(
       map((userParams: StringKeyObject | undefined) => Object.assign(uploadParams, userParams || {})),
     )
   }
 
-  private handleProgress (): Observable<ProgressPayload> {
+  private handleProgress (): Observable<any> {
     const reduceFn = (res: number = 0, cur: { uploaded: number }) => (res += cur.uploaded || 0)
     return this.progressSubject.pipe(
-      tap(({ chunk, file, event }) => {
+      map(({ chunk, file, event }) => {
         const chunkSize = chunk.data?.size || chunk.size || event.total
         const chunkLoaded = Math.min(chunkSize, event.loaded || 0)
 
@@ -419,14 +443,19 @@ export class CommonsTaskHandler extends TaskHandler {
         this.task.progress = taskProgress
 
         this.task.progress > taskLastProgress && scheduleWork(() => this.presistTaskOnly(this.task))
-        this.emit(EventType.TaskProgress, this.task, file, this.task.progress)
+        // this.emit(EventType.TaskProgress, this.task, file, this.task.progress)
 
-        console.log(
-          `progress - ${this.task.name} - ${file.name} - ${chunk.index}`,
-          chunk.progress,
-          file.progress,
-          this.task.progress,
-        )
+        return this.task.progress
+        // console.log(
+        //   `progress - ${this.task.name} - ${file.name} - ${chunk.index}`,
+        //   chunk.progress,
+        //   file.progress,
+        //   this.task.progress,
+        // )
+      }),
+      distinctUntilChanged(),
+      tap((taskProgress: number) => {
+        this.emit(EventType.TaskProgress, this.task, taskProgress)
       }),
     )
   }

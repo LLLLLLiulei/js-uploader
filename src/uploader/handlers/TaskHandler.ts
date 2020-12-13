@@ -61,7 +61,7 @@ export default abstract class TaskHandler extends Base {
         sub = from((result = md5WorkerPool.execute(data).promise!)).subscribe(ob as PartialObserver<any>)
       } else {
         sub = this.readFile(data)
-          .pipe(switchMap((data: Blob) => (result = md5WorkerPool.execute(data)).promise!))
+          .pipe(switchMap((data: Blob) => from((result = md5WorkerPool.execute(data)).promise!)))
           .subscribe(ob as PartialObserver<any>)
       }
       return () => {
@@ -82,15 +82,16 @@ export default abstract class TaskHandler extends Base {
     return this.createObserverble(this.uploaderOptions.requestOptions.url, this.task, uploadfile, chunk)
   }
 
-  protected getRequestHeaders (uploadfile: UploadFile): Observable<StringKeyObject | undefined> {
-    return this.createObserverble(this.uploaderOptions.requestOptions.headers, this.task, uploadfile)
+  protected getRequestHeaders (uploadfile: UploadFile, chunk: FileChunk): Observable<StringKeyObject | undefined> {
+    return this.createObserverble(this.uploaderOptions.requestOptions.headers, this.task, uploadfile, chunk)
   }
 
   protected getRequestParams (
     uploadfile: UploadFile,
+    chunk: FileChunk,
     baseParams: StringKeyObject,
   ): Observable<StringKeyObject | undefined> {
-    return this.createObserverble(this.uploaderOptions.requestOptions.body, this.task, uploadfile, baseParams)
+    return this.createObserverble(this.uploaderOptions.requestOptions.body, this.task, uploadfile, chunk, baseParams)
   }
 
   protected getUploadFileByID (id: ID): Observable<Nullable<UploadFile>> {
