@@ -49,16 +49,16 @@ export class FileDragger {
   private parseWebkitDataTransfer (dataTransfer: DataTransfer, _e: DragEvent): Promise<File[]> {
     const files: File[] = []
 
-    const read = (reader: any): Promise<unknown> => {
+    const read = (reader: any): Promise<any> => {
       return new Promise((resolve, reject) => {
         reader.readEntries((entries: any) => {
-          const promises = entries.map((entry: any) => {
+          const promises: Promise<any>[] = entries.map((entry: any) => {
             if (entry.isFile) {
               return new Promise((resolve, reject) => {
                 let fullPath = entry.fullPath
                 entry.file((file: File) => {
                   file && files.push(Object.assign(file, { relativePath: String(fullPath).replace(/^\//, '') }))
-                  resolve()
+                  resolve(file)
                 }, reject)
               })
             } else {
