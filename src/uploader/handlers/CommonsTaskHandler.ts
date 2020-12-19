@@ -54,12 +54,12 @@ export class CommonsTaskHandler extends TaskHandler {
     this.subscription = null
     const { task } = this
     task.status = task.status === StatusCode.Complete ? task.status : StatusCode.Pause
-    this.presistTaskOnly(this.task)
+    this.isResumable() && this.presistTaskOnly(this.task)
 
     task.fileList?.forEach((file) => {
       let status = file.status === StatusCode.Complete ? file.status : StatusCode.Pause
       this.changeUploadFileStatus(file, status)
-      this.presistFileOnly(file)
+      this.isResumable() && this.presistFileOnly(file)
     })
     this.emit(EventType.TaskPause, this.task)
     return this
@@ -88,7 +88,7 @@ export class CommonsTaskHandler extends TaskHandler {
       this.upload$ = of(this.task).pipe(
         switchMap((task: UploadTask) => {
           // 任务开始前hook
-          const beforeTaskStart = this.uploaderOptions.beforeTaskStart?.(task) || Promise.resolve()
+          const beforeTaskStart = this.hookWrap(this.uploaderOptions.beforeTaskStart?.(task))
           return from(beforeTaskStart).pipe(mapTo(task))
         }),
         tap((task: UploadTask) => {
@@ -200,7 +200,11 @@ export class CommonsTaskHandler extends TaskHandler {
             const chunkIDList: ID[] = chunkList.map((ck) => ck.id)
             Object.assign(uploadFile, { chunkList, chunkIDList })
             // 保存分片和文件信息
-            return forkJoin([from(this.presistChunkOnly(...chunkList)), from(this.presistFileOnly(uploadFile))])
+            if (this.isResumable()) {
+              return forkJoin([from(this.presistChunkOnly(...chunkList)), from(this.presistFileOnly(uploadFile))])
+            } else {
+              return of('')
+            }
           }),
           mapTo(uploadFile),
         )
@@ -280,7 +284,13 @@ export class CommonsTaskHandler extends TaskHandler {
         chunk.response = response?.response
         this.emit(EventType.ChunkComplete, this.task, uploadFile, chunk, response)
       }),
-      concatMap((res: ChunkResponse) => from(this.presistChunkOnly(res.chunk)).pipe(mapTo(res))),
+      concatMap((res: ChunkResponse) => {
+        if (this.isResumable()) {
+          return from(this.presistChunkOnly(res.chunk)).pipe(mapTo(res))
+        } else {
+          return of(res)
+        }
+      }),
       reduce((acc: ChunkResponse[], v: ChunkResponse) => (acc.push(v) ? acc : acc), []), // 收集response
     )
   }
@@ -442,7 +452,9 @@ export class CommonsTaskHandler extends TaskHandler {
         }
         this.task.progress = taskProgress
 
-        this.task.progress > taskLastProgress && scheduleWork(() => this.presistTaskOnly(this.task))
+        if (this.isResumable() && this.task.progress > taskLastProgress) {
+          scheduleWork(() => this.presistTaskOnly(this.task))
+        }
         // this.emit(EventType.TaskProgress, this.task, file, this.task.progress)
 
         return this.task.progress

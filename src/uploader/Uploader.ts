@@ -503,12 +503,12 @@ export class Uploader extends Base {
           tap((file: UploadFile) => {
             let pos = file.relativePath.indexOf('/')
             let newTask: Nullable<UploadTask> = null
-            let inFolder = !this.options.singleFileTask && pos !== -1
+            let inFolder = !singleFileTask && pos !== -1
             if (!inFolder) {
               newTask = taskFactory(file, singleFileTask)
             } else {
               let parentPath: string = file.relativePath.substring(0, pos)
-              let existsTask: UploadTask | undefined = this.taskQueue.find((tsk) => {
+              let existsTask: UploadTask | undefined = [...this.taskQueue, ...newTasks].find((tsk) => {
                 return tsk.fileIDList.some((id) => FileStore.get(id)?.relativePath.startsWith(parentPath))
               })
               if (existsTask) {
@@ -522,12 +522,13 @@ export class Uploader extends Base {
             }
             if (newTask) {
               newTask.oss = ossOptions?.enable ? ossOptions?.type : newTask.oss
-              newTask.type = this.options.singleFileTask ? 'file' : newTask.type
+              newTask.type = singleFileTask ? 'file' : newTask.type
               newTasks.push(newTask)
             }
           }),
           last(),
           concatMap(() => from(this.options.filesAdded?.(fileList) || Promise.resolve())),
+          concatMap(() => from(this.options.beforeTasksAdd?.(newTasks) || Promise.resolve())),
           tap(() => {
             // 任务创建事件
             newTasks.forEach((task) => {

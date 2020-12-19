@@ -1,5 +1,14 @@
 import { Observable, Subscriber, of, from, forkJoin, Subscription, PartialObserver } from 'rxjs'
-import { ID, StringKeyObject, StatusCode, UploaderOptions, UploadFile, UploadTask, FileChunk } from '../../types'
+import {
+  ID,
+  StringKeyObject,
+  StatusCode,
+  UploaderOptions,
+  UploadFile,
+  UploadTask,
+  FileChunk,
+  MaybePromise,
+} from '../../types'
 import { fileReader } from '../helpers/file-reader'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
 import { FileStore, Storage } from '../modules'
@@ -159,5 +168,13 @@ export default abstract class TaskHandler extends Base {
       const sub = this.toObserverble(res).subscribe(ob)
       return () => sub.unsubscribe()
     })
+  }
+
+  protected isResumable (): Boolean {
+    return !!this.uploaderOptions.resumable
+  }
+
+  protected hookWrap<T extends MaybePromise> (fn: T): Promise<any> {
+    return (fn as any) || Promise.resolve()
   }
 }
