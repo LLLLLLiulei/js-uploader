@@ -1,6 +1,7 @@
 import { scriptContent as sparkMD5Factory } from './sparkMD5Script'
 import { computeMd5 } from '../utils/compute-md5'
 import md5WorkerScript from './md5WorkerScript'
+import { Logger } from './Logger'
 
 const taskQueue: Task[] = []
 const workers: MD5Worker[] = []
@@ -72,7 +73,7 @@ class MD5WorkerPool {
         if (task.workerID) {
           let worker = workers.find((w) => w.id === task.workerID)
           if (worker) {
-            console.warn('abort worker')
+            Logger.warn('abort worker')
             worker.postMessage({ action: 'abort' })
             worker.execute()
           }

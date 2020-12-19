@@ -13,7 +13,7 @@ export interface LoggerAdapter {
   debug(...message: string[]): void
 }
 
-export type Formatter = (name: string, level: Level, ...message: any[]) => string
+export type Formatter = (name: string, level: Level, ...message: any[]) => any
 
 export class ContextLogger {
   public destroy = (): void => void 0
@@ -32,7 +32,7 @@ export class ContextLogger {
       const params: [string, Level, ...any[]] = [this.name, this.level, ...message]
       output = this.formatter.apply(this, params)
     }
-    this.adapter[method].call(this.adapter, output)
+    this.adapter[method].call(this.adapter, ...output)
     const fns = this.effects.get(method as keyof LoggerAdapter) || []
     fns.forEach((fn) => fn(...message))
   }
@@ -96,11 +96,10 @@ export class ContextLogger {
 export class Logger {
   private static contextMap = new Map<string, ContextLogger>()
   private static defaultLevel = Level.debug
-  private static outputLogger = new ContextLogger('[ReactiveDB]', Logger.defaultLevel, (name, _, message) => {
-    const output = Array.isArray(message) ? message.join('') : message
+  private static outputLogger = new ContextLogger('rx-uploader', Logger.defaultLevel, (name, _, message) => {
     const current = new Date()
     const prefix = name ? `[${name}] ` : ''
-    return `${prefix}at ${current.toLocaleString()}: \r\n    ` + output
+    return [`${prefix} ${current.toLocaleString()}: \r\n`, message]
   })
 
   static get (name: string, formatter?: Formatter, level?: Level, adapter: LoggerAdapter = console) {
@@ -123,19 +122,19 @@ export class Logger {
     Logger.outputLogger.setLevel(level)
   }
 
-  static warn (...message: string[]) {
+  static warn (...message: any[]) {
     Logger.outputLogger.warn(...message)
   }
 
-  static info (...message: string[]) {
+  static info (...message: any[]) {
     Logger.outputLogger.info(...message)
   }
 
-  static debug (...message: string[]) {
+  static debug (...message: any[]) {
     Logger.outputLogger.debug(...message)
   }
 
-  static error (...message: string[]) {
+  static error (...message: any[]) {
     Logger.outputLogger.error(...message)
   }
 }

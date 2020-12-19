@@ -45,13 +45,6 @@ Promise.all([write('publish/package.json', pkgData), write('publish/README.md', 
     // }
     // console.info(stdout)
   })
-  .then(() => {
-    // const { stderr, stdout } = shelljs.exec('npm publish dist/esm')
-    // if (stderr) {
-    //   throw stderr
-    // }
-    // console.info(stdout)
-  })
   .catch((e: Error) => {
     console.error(e)
     process.exit(1)

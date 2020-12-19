@@ -42,6 +42,7 @@ import { retryWithDelay } from '../../operators/retry-with-delay'
 import { assert } from '../../utils/assert'
 import { chunkFactory } from '../helpers/chunk-factory'
 import { scheduleWork } from '../../utils/schedule-work'
+import { Logger } from '../../shared/Logger'
 
 export class CommonsTaskHandler extends TaskHandler {
   private readonly progressSubject: Subject<ProgressPayload> = new Subject()
@@ -82,7 +83,7 @@ export class CommonsTaskHandler extends TaskHandler {
   }
 
   handle (): this {
-    console.log('CommonTaskHandler -> handle -> task', this.task)
+    Logger.info('CommonTaskHandler -> handle -> task', this.task)
 
     if (!this.upload$) {
       this.upload$ = of(this.task).pipe(
@@ -92,7 +93,7 @@ export class CommonsTaskHandler extends TaskHandler {
           return from(beforeTaskStart).pipe(mapTo(task))
         }),
         tap((task: UploadTask) => {
-          console.log('🚀 ~ 开始上传', task)
+          Logger.info('🚀 ~ 开始上传', task)
           this.changeUplotaTaskStatus(task, StatusCode.Uploading)
           this.emit(EventType.TaskUploadStart, task)
         }),
@@ -103,15 +104,15 @@ export class CommonsTaskHandler extends TaskHandler {
     this.subscription?.unsubscribe()
     this.subscription = this.upload$.subscribe({
       next: () => {
-        console.log('🚀 ~  上传任务 next ')
+        Logger.info('🚀 ~  上传任务 next ')
       },
       error: (err: Error) => {
-        console.log('🚀 ~ 上传任务出错', err)
+        Logger.info('🚀 ~ 上传任务出错', err)
         this.changeUplotaTaskStatus(this.task, StatusCode.Error)
         this.emit(EventType.TaskError, this.task, err)
       },
       complete: () => {
-        console.log('🚀 ~ 上传任务完成', this.task)
+        Logger.info('🚀 ~ 上传任务完成', this.task)
         this.changeUplotaTaskStatus(this.task, StatusCode.Complete)
         this.emit(EventType.TaskComplete, this.task)
         this.removeTaskFromStroage(this.task)
@@ -136,7 +137,7 @@ export class CommonsTaskHandler extends TaskHandler {
         // 过滤完成的文件
         const isComplete = uploadFile.status === StatusCode.Complete
         if (isComplete) {
-          console.warn(`skip file,status:${uploadFile.status}`, uploadFile.name)
+          Logger.warn(`skip file,status:${uploadFile.status}`, uploadFile.name)
         }
         return !isComplete
       }),
@@ -144,7 +145,7 @@ export class CommonsTaskHandler extends TaskHandler {
         // 根据配置 跳过出错的文件
         const skip: boolean = uploadFile.status === StatusCode.Error && !!this.uploaderOptions.skipFileWhenUploadError
         if (skip) {
-          console.warn(`skip file,status:${uploadFile.status}`, uploadFile.name)
+          Logger.warn(`skip file,status:${uploadFile.status}`, uploadFile.name)
         }
         return !skip
       }),
@@ -160,7 +161,7 @@ export class CommonsTaskHandler extends TaskHandler {
         // 判断是否需要计算hash/md5
         const should = !!uploaderOptions.computeFileHash && !uploadFile.hash
         if (!should) {
-          console.log('should not compute hash for', uploadFile.name)
+          Logger.info('should not compute hash for', uploadFile.name)
           return of(uploadFile)
         }
 
@@ -219,7 +220,7 @@ export class CommonsTaskHandler extends TaskHandler {
         )
       }),
       catchError((e: Error) => {
-        console.log('🚀 ~  upload error', uploadFile, e)
+        Logger.info('🚀 ~  upload error', uploadFile, e)
         // 文件上传错误事件
         this.changeUploadFileStatus(uploadFile, StatusCode.Error)
         this.emit(EventType.FileError, this.task, uploadFile, e)
@@ -232,7 +233,7 @@ export class CommonsTaskHandler extends TaskHandler {
         }
       }),
       tap(({ uploadFile, chunkResponses }) => {
-        console.log('🚀 ~  upload complete', uploadFile, chunkResponses)
+        Logger.info('🚀 ~  upload complete', uploadFile, chunkResponses)
         // 文件上传完成事件
         uploadFile.response = chunkResponses?.length
           ? chunkResponses[chunkResponses.length - 1]?.response?.response
@@ -262,7 +263,7 @@ export class CommonsTaskHandler extends TaskHandler {
         // 过滤完成的分片
         const isComplete = chunk.status === StatusCode.Complete
         if (isComplete) {
-          console.log(`skip chunk，status:${chunk.status}`, uploadFile.name, chunk)
+          Logger.info(`skip chunk，status:${chunk.status}`, uploadFile.name, chunk)
         }
         return !isComplete
       }),
@@ -279,7 +280,7 @@ export class CommonsTaskHandler extends TaskHandler {
         )
       }, concurrency || 1),
       tap(({ chunk, response }) => {
-        console.log('🚀 ~ chunk upload complete', uploadFile.name, chunk, response)
+        Logger.info('🚀 ~ chunk upload complete', uploadFile.name, chunk, response)
         this.changeFileChunkStatus(chunk, StatusCode.Complete)
         chunk.response = response?.response
         this.emit(EventType.ChunkComplete, this.task, uploadFile, chunk, response)
@@ -318,7 +319,7 @@ export class CommonsTaskHandler extends TaskHandler {
         return from(beforeProcess).pipe(mapTo(response))
       }),
       tap((response: AjaxResponse) => {
-        console.log('🚀 ~ AjaxResponse', upFile.name, chunk, response)
+        Logger.info('🚀 ~ AjaxResponse', upFile.name, chunk, response)
         // 请求响应参数校验,200状态码认为是成功
         assert(response.status === 200, JSON.stringify(response.response))
       }),
@@ -458,7 +459,7 @@ export class CommonsTaskHandler extends TaskHandler {
         // this.emit(EventType.TaskProgress, this.task, file, this.task.progress)
 
         return this.task.progress
-        // console.log(
+        // Logger.info(
         //   `progress - ${this.task.name} - ${file.name} - ${chunk.index}`,
         //   chunk.progress,
         //   file.progress,
@@ -512,6 +513,6 @@ class ProgressSubscriber extends Subscriber<ProgressEvent> {
     })
   }
   error (e: Error) {
-    console.warn('progress error', e)
+    Logger.error('progress error', e)
   }
 }

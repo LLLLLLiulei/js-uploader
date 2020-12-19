@@ -2,6 +2,7 @@ import { EventEmitter, Storage, FileStore } from './modules'
 import { Observable, from, of, Subscriber, Subscription, forkJoin } from 'rxjs'
 import { concatMap } from 'rxjs/operators'
 import { FileChunk, ID, MaybePromise, TPromise, UploadFile, UploadTask } from '../interface'
+import { Logger } from '../shared/Logger'
 
 export default class Base extends EventEmitter {
   protected constructor () {
@@ -64,7 +65,7 @@ export default class Base extends EventEmitter {
       const promise: Promise<any> = file.raw ? this.presistBlob(String(file.id), file.raw) : Promise.resolve()
       promise
         .then(() => {
-          console.warn(`save file ${file.name}`)
+          Logger.warn(`save file ${file.name}`)
           const upfile = file.raw ? Object.assign({}, file, { raw: null }) : file
           Storage.UploadFile.setItem(String(file.id), upfile)
             .then(resolve)
@@ -79,7 +80,7 @@ export default class Base extends EventEmitter {
   }
 
   protected presistTask (...tasks: UploadTask[]): Observable<UploadTask[]> {
-    console.log('Uploader -> presistTask -> tasks', tasks)
+    Logger.info('Uploader -> presistTask -> tasks', tasks)
     tasks = tasks || []
     const job$ = tasks.map((task) => {
       let obs = task.fileIDList.map((id) => from(this.presistUploadFile(FileStore.get(id))))

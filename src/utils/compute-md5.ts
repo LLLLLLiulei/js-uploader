@@ -1,3 +1,4 @@
+import { Logger } from '../shared/Logger'
 import { scheduleWork } from './schedule-work'
 
 export const computeMd5 = (file: Blob | ArrayBuffer): Promise<string> => {
@@ -10,7 +11,7 @@ export const computeMd5 = (file: Blob | ArrayBuffer): Promise<string> => {
 
     const append = (data: ArrayBuffer | Blob, start: number, end: number): Promise<void> => {
       return new Promise((resolve, reject) => {
-        console.log('read chunk nr', currentChunk + 1, 'of', chunks)
+        Logger.info('read chunk nr', currentChunk + 1, 'of', chunks)
         if (data instanceof ArrayBuffer) {
           spark.append(data.slice(start, end))
           resolve()
@@ -21,7 +22,7 @@ export const computeMd5 = (file: Blob | ArrayBuffer): Promise<string> => {
             resolve()
           }
           fileReader.onerror = (e: ProgressEvent<FileReader>) => {
-            console.warn('oops, something went wrong.', e)
+            Logger.warn('oops, something went wrong.', e)
             reject(e)
           }
         }
@@ -42,7 +43,7 @@ export const computeMd5 = (file: Blob | ArrayBuffer): Promise<string> => {
         scheduleWork(loadNext)
       } else {
         let md5 = spark.end()
-        console.info('computed hash', md5)
+        Logger.info('computed hash', md5)
         resolve(md5)
       }
     }

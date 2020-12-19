@@ -22,6 +22,7 @@ import TaskHandler from './handlers/TaskHandler'
 import Base from './Base'
 import { scheduleWork } from '../utils/schedule-work'
 import { taskFactory } from './helpers/task-factory'
+import { Logger } from '../shared/Logger'
 
 const defaultOptions: UploaderOptions = {
   requestOptions: {
@@ -82,7 +83,7 @@ export class Uploader extends Base {
   }
 
   private validateOptions (options: UploaderOptions) {
-    console.log('🚀 ~ file: Uploader.ts ~ line 84 ~ Uploader ~ validateOptions ~ options', options)
+    Logger.info('🚀 ~ file: Uploader.ts ~ line 84 ~ Uploader ~ validateOptions ~ options', options)
     // TODO
   }
 
@@ -94,7 +95,7 @@ export class Uploader extends Base {
           return !filteredTaskStatus.includes(task.status as StatusCode)
         }),
         tap((task: UploadTask) => {
-          console.log('🚀 ~ file: 等待上传', task)
+          Logger.info('🚀 ~ file: 等待上传', task)
           this.changeUploadTaskStatus(task, StatusCode.Waiting)
           this.emit(EventType.TaskWaiting, task)
         }),
@@ -104,14 +105,14 @@ export class Uploader extends Base {
       this.uploadSubscription?.unsubscribe()
       this.uploadSubscription = this.upload$.subscribe({
         next: (v: UploadTask) => {
-          console.log('任务结束', v)
+          Logger.info('任务结束', v)
           this.checkComplete()
         },
         error: (e: Error) => {
-          console.log('任务出错', e)
+          Logger.info('任务出错', e)
         },
         complete: () => {
-          console.log('所有任务完成')
+          Logger.info('所有任务完成')
         },
       })
       this.subscription.add(this.uploadSubscription)
@@ -138,7 +139,7 @@ export class Uploader extends Base {
           fromEvent(handler!, EventType.TaskPause).pipe(
             tap(() => {
               // 暂停
-              console.log('任务暂停')
+              Logger.info('任务暂停')
             }),
           ),
           fromEvent(handler!, EventType.TaskCancel).pipe(
@@ -311,7 +312,7 @@ export class Uploader extends Base {
   }
 
   private taskHandlerEventCallback (e: EventType, ...args: any[]) {
-    console.log('🚀 ~ file: Uploader.ts ~ line 179 ~ Uploader ~ taskHandlerEventCallback ~ e', e, args)
+    Logger.info('🚀 ~ file: Uploader.ts ~ line 179 ~ Uploader ~ taskHandlerEventCallback ~ e', e, args)
     this.emit(e, ...args)
   }
 
@@ -323,7 +324,7 @@ export class Uploader extends Base {
     return new Promise((resolve, reject) => {
       Storage.UploadTask.list()
         .then((list: unknown[]) => {
-          console.log('Uploader -> restoreTask -> list', list)
+          Logger.info('Uploader -> restoreTask -> list', list)
           const taskList: UploadTask[] = []
           const fn = (timeRemaining?: () => number) => {
             while (list.length) {
@@ -408,7 +409,7 @@ export class Uploader extends Base {
 
   addFiles (...files: Array<File>): Promise<UploadTask[]> {
     return new Promise((resolve, reject) => {
-      console.log('Uploader -> addFile -> files', files)
+      Logger.info('Uploader -> addFile -> files', files)
       if (!files?.length) {
         return resolve([])
       }
@@ -424,11 +425,11 @@ export class Uploader extends Base {
         }
         !ignored && filelist.push(fileFactory(file))
       })
-      console.log('Uploader -> addFile -> filelist', filelist)
+      Logger.info('Uploader -> addFile -> filelist', filelist)
       this.generateTask(...filelist)
         .toPromise()
         .then((tasks) => {
-          console.log(this.taskQueue)
+          Logger.info(this.taskQueue)
           const resolveTask = (tasks: UploadTask[]) => {
             resolve(tasks)
           }
@@ -441,7 +442,7 @@ export class Uploader extends Base {
 
   addFilesAsync (...files: Array<File>): Promise<UploadTask[]> {
     return new Promise((resolve, reject) => {
-      console.log('Uploader -> addFile -> files', files)
+      Logger.info('Uploader -> addFile -> files', files)
       if (!files?.length) {
         return resolve([])
       }
@@ -464,10 +465,11 @@ export class Uploader extends Base {
       }
 
       const { fileFilter } = this.options
-      const tasks: UploadTask[] = []
+      const tasks: Set<UploadTask> = new Set()
+
       const fn = async (timeRemaining?: () => number) => {
         while (files.length) {
-          console.log(files.length)
+          Logger.info(files.length)
           const filelist: UploadFile[] = []
           files.splice(0, 20).forEach((file) => {
             let ignored = false
@@ -481,12 +483,12 @@ export class Uploader extends Base {
             }
           })
           const currentTasks: UploadTask[] = await this.generateTask(...filelist).toPromise()
-          tasks.push(...currentTasks)
+          currentTasks.map((i) => tasks.add(i))
           if (!timeRemaining || !timeRemaining?.()) {
             break
           }
         }
-        files.length ? scheduleWork(fn) : finish(tasks)
+        files.length ? scheduleWork(fn) : finish([...tasks])
       }
       scheduleWork(fn)
     })
@@ -495,7 +497,7 @@ export class Uploader extends Base {
   private generateTask (...fileList: UploadFile[]): Observable<UploadTask[]> {
     return new Observable((subscriber: Subscriber<UploadTask[]>) => {
       const { ossOptions, singleFileTask } = this.options
-      const updateTasks: UploadTask[] = []
+      const updateTasks: Set<UploadTask> = new Set()
       const newTasks: UploadTask[] = []
       const notifier: Subject<void> = new Subject()
       const sub: Subscription = from(fileList)
@@ -513,9 +515,9 @@ export class Uploader extends Base {
               })
               if (existsTask) {
                 existsTask.fileIDList.push(file.id)
+                existsTask.fileList.push(file)
                 existsTask.filSize += file.size
-                !newTasks.some((tsk) => tsk.id === existsTask?.id) && newTasks.push(existsTask)
-                updateTasks.push(existsTask)
+                updateTasks.add(existsTask)
               } else {
                 newTask = taskFactory(file, singleFileTask)
               }
@@ -527,8 +529,8 @@ export class Uploader extends Base {
             }
           }),
           last(),
-          concatMap(() => from(this.hookWrap(this.options.filesAdded?.(fileList)))),
-          concatMap(() => from(this.hookWrap(this.options.beforeTasksAdd?.(newTasks)))),
+          concatMap(() => (fileList.length ? from(this.hookWrap(this.options.filesAdded?.(fileList))) : of(null))),
+          concatMap(() => (newTasks.length ? from(this.hookWrap(this.options.beforeTasksAdd?.(newTasks))) : of(null))),
           tap(() => {
             // 任务创建事件
             newTasks.forEach((task) => {

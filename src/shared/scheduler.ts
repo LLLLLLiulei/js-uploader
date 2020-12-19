@@ -1,3 +1,5 @@
+import { Logger } from './Logger'
+
 export type ITaskCallback = ((time: boolean) => boolean) | null
 
 export interface ITask {
@@ -25,7 +27,7 @@ const postMessage = (() => {
 
 export const scheduleWork = (callback: ITaskCallback): void => {
   if ('requestIdleCallback' in window) {
-    console.warn('use requestIdleCallback!')
+    Logger.warn('use requestIdleCallback!')
     window.requestIdleCallback((idle) => callback?.(idle.didTimeout), { timeout: 3000 })
     return
   }

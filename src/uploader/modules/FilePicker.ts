@@ -1,6 +1,7 @@
 import { fromEvent, Observable } from 'rxjs'
 import { filter, map, tap } from 'rxjs/operators'
 import { FilePickerOptions } from '../../interface'
+import { Logger } from '../../shared/Logger'
 
 export class FilePicker {
   $el: HTMLInputElement
@@ -18,7 +19,7 @@ export class FilePicker {
       map(() => Array.from(this.$el.files as FileList)),
       tap((files: File[]) => {
         this.$el.value = ''
-        console.log('FilePicker -> constructor -> files', files)
+        Logger.info('FilePicker -> constructor -> files', files)
       }),
     )
   }
