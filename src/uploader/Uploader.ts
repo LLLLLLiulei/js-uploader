@@ -385,7 +385,7 @@ export class Uploader extends Base {
               return of(files).pipe(
                 concatMap((files: File[]) => {
                   // 选择文件后添加文件前hook
-                  const beforeAdd = this.options.beforeFilesAdd?.(files) || Promise.resolve()
+                  const beforeAdd = this.hookWrap(this.options.beforeFilesAdd?.(files))
                   return from(beforeAdd).pipe(mapTo(files))
                 }),
                 concatMap((files: File[]) => {
@@ -527,8 +527,8 @@ export class Uploader extends Base {
             }
           }),
           last(),
-          concatMap(() => from(this.options.filesAdded?.(fileList) || Promise.resolve())),
-          concatMap(() => from(this.options.beforeTasksAdd?.(newTasks) || Promise.resolve())),
+          concatMap(() => from(this.hookWrap(this.options.filesAdded?.(fileList)))),
+          concatMap(() => from(this.hookWrap(this.options.beforeTasksAdd?.(newTasks)))),
           tap(() => {
             // 任务创建事件
             newTasks.forEach((task) => {

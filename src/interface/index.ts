@@ -216,15 +216,17 @@ export type MaybePromise = Promise<any> | void
 export interface OssOptions {
   enable: boolean
   type: OSS
-  keyGenerator: (file: UploadFile, task: UploadTask) => Promise<string> | string
-  uptokenGenerator: (file: UploadFile, task: UploadTask) => Promise<string> | string
+  keyGenerator: (file: UploadFile, task: UploadTask) => TPromise<string>
+  uptokenGenerator: (file: UploadFile, task: UploadTask) => TPromise<string>
 }
+
+export type TPromise<T> = T | Promise<T>
 
 export interface RequestOptions {
   // 上传请求url
-  url: string | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => string | Promise<string>)
-  headers?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => Obj | Promise<Obj>)
-  body?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => Obj | Promise<Obj>)
+  url: string | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => TPromise<string>)
+  headers?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => TPromise<Obj>)
+  body?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => TPromise<Obj>)
   timeout?: number
   withCredentials?: boolean
 }
@@ -281,10 +283,10 @@ export interface UploaderOptions {
   fileFilter?: RegExp | ((fileName: string, file: File | string) => boolean)
 
   // 读取文件的方法
-  readFileFn?: (task: UploadTask, upfile: UploadFile, start?: number, end?: number) => Blob | Promise<Blob>
+  readFileFn?: (task: UploadTask, upfile: UploadFile, start?: number, end?: number) => TPromise<Blob>
 
   // 处理requestBody的方法
-  requestBodyProcessFn?: (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => Promise<any> | any
+  requestBodyProcessFn?: (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => TPromise<any>
 
   // 文件添加前（选择文件后）
   beforeFilesAdd?: (files: File[]) => MaybePromise

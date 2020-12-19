@@ -1,18 +1,18 @@
 import { EventEmitter, Storage, FileStore } from './modules'
 import { Observable, from, of, Subscriber, Subscription, forkJoin } from 'rxjs'
 import { concatMap } from 'rxjs/operators'
-import { FileChunk, ID, UploadFile, UploadTask } from '../interface'
+import { FileChunk, ID, MaybePromise, TPromise, UploadFile, UploadTask } from '../interface'
 
 export default class Base extends EventEmitter {
   protected constructor () {
     super()
   }
 
-  protected toObserverble<T> (input: T | Promise<T>): Observable<T> {
+  protected toObserverble<T> (input: TPromise<T>): Observable<T> {
     return input && input instanceof Promise ? from(input) : of(input)
   }
 
-  protected createObserverble<T> (input: T | ((...args: any[]) => T | Promise<T>), ...args: any[]): Observable<T> {
+  protected createObserverble<T> (input: T | ((...args: any[]) => TPromise<T>), ...args: any[]): Observable<T> {
     return new Observable((ob: Subscriber<T>) => {
       let sub: Subscription
       try {
@@ -60,6 +60,7 @@ export default class Base extends EventEmitter {
       if (!file) {
         return reject('no file!')
       }
+
       const promise: Promise<any> = file.raw ? this.presistBlob(String(file.id), file.raw) : Promise.resolve()
       promise
         .then(() => {
@@ -125,5 +126,9 @@ export default class Base extends EventEmitter {
         }),
       )
     }
+  }
+
+  protected hookWrap<T extends MaybePromise> (fn: T): Promise<any> {
+    return (fn as any) || Promise.resolve()
   }
 }

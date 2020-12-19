@@ -166,7 +166,7 @@ export class CommonsTaskHandler extends TaskHandler {
 
         //  hash计算前后hook
         const { beforeFileHashCompute, fileHashComputed } = this.uploaderOptions
-        const beforeCompute = beforeFileHashCompute?.(task, uploadFile) || Promise.resolve()
+        const beforeCompute = this.hookWrap(beforeFileHashCompute?.(task, uploadFile))
         return from(beforeCompute).pipe(
           concatMap(() => {
             // 使用线程池计算hash
@@ -174,14 +174,14 @@ export class CommonsTaskHandler extends TaskHandler {
           }),
           concatMap((uploadFile: UploadFile) => {
             // hash计算后
-            const computed = fileHashComputed?.(task, uploadFile, uploadFile.hash) || Promise.resolve()
+            const computed = this.hookWrap(fileHashComputed?.(task, uploadFile, uploadFile.hash))
             return from(computed).pipe(mapTo(uploadFile))
           }),
         )
       }),
       concatMap((uploadFile: UploadFile) => {
         // 文件上传开始前hook
-        const beforeFileUploadStart = uploaderOptions.beforeFileUploadStart?.(task, uploadFile) || Promise.resolve()
+        const beforeFileUploadStart = this.hookWrap(uploaderOptions.beforeFileUploadStart?.(task, uploadFile))
         return from(beforeFileUploadStart).pipe(mapTo(uploadFile))
       }),
       filter((uploadFile: UploadFile) => uploadFile.status !== StatusCode.Complete), // 再次过滤成功的文件
@@ -308,13 +308,13 @@ export class CommonsTaskHandler extends TaskHandler {
         const progressSubscriber = new ProgressSubscriber(this.progressSubject, this.task, upFile, chunk) // 进度订阅
         // 上传请求发送前hook
         const { beforeUploadRequestSend } = this.uploaderOptions
-        const beforeSend = beforeUploadRequestSend?.(this.task, upFile, chunk, res) || Promise.resolve()
+        const beforeSend = this.hookWrap(beforeUploadRequestSend?.(this.task, upFile, chunk, res))
         return from(beforeSend).pipe(concatMap(() => this.sendRequest(upFile, chunk, res, progressSubscriber)))
       }),
       concatMap((response: AjaxResponse) => {
         // 上传响应数据处理前hook
         const { beforeUploadResponseProcess } = this.uploaderOptions
-        const beforeProcess = beforeUploadResponseProcess?.(this.task, upFile, chunk, response) || Promise.resolve()
+        const beforeProcess = this.hookWrap(beforeUploadResponseProcess?.(this.task, upFile, chunk, response))
         return from(beforeProcess).pipe(mapTo(response))
       }),
       tap((response: AjaxResponse) => {
@@ -385,14 +385,14 @@ export class CommonsTaskHandler extends TaskHandler {
     return new Observable((ob: Subscriber<UploadFormData>) => {
       const { beforeFileRead, fileReaded } = this.uploaderOptions
       // 文件读取前后hook
-      const beforeRead = beforeFileRead?.(this.task, uploadFile, chunk) || Promise.resolve()
+      const beforeRead = this.hookWrap(beforeFileRead?.(this.task, uploadFile, chunk))
       const shouldComputeChunkHash: boolean = !!this.uploaderOptions.computeChunkHash
       const sub = from(beforeRead)
         .pipe(
           concatMap(() => this.readFile(uploadFile, chunk.start, chunk.end)),
           concatMap((data: Blob) => {
             // 文件读取后
-            const readed = fileReaded?.(this.task, uploadFile, chunk, data) || Promise.resolve()
+            const readed = this.hookWrap(fileReaded?.(this.task, uploadFile, chunk, data))
             return from(readed).pipe(mapTo(data))
           }),
           concatMap((data: Blob) => {

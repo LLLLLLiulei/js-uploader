@@ -33,34 +33,35 @@ const uploader = Uploader.create({
     },
   },
   requestOptions: {
-    url: (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
-      return new Promise((resolve, reject) => {
-        console.log('🚀 ~ requestOptions - url ', task, upfile, chunk)
-        setTimeout(() => {
-          resolve('http://ecm.test.work.zving.com/catalogs/4751/files/upload')
-        }, 1000)
-      })
-      // console.log('🚀 ~ requestOptions - url ', task, upfile, chunk)
-      // return 'http://ecm.test.work.zving.com/catalogs/4751/files/upload'
-    },
-    headers: (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
-      return new Promise((resolve, reject) => {
-        console.log('🚀 ~ requestOptions - headers ', task, upfile, chunk)
-        setTimeout(() => {
-          resolve({
-            CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
-            TOKEN:
-              'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwODk2NjA4NiwiaWF0IjoxNjA4MzYxMjg2LCJqdGkiOiI3MzVmZjZmZGQxODk0YzAxOWU3MmEzNTI0NjQ4MTRiZCJ9.e1hCx-hT1Lg16otoR0vctHez12GlCSUHdpuBbP6nDYs',
-            GUID: 'b1da407ce0a5408b847f4151d41783ff',
-          })
-        }, 1000)
-      })
-      // return {
-      //   CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
-      //   TOKEN:
-      //     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwNzc2NDI3NCwiaWF0IjoxNjA3MTU5NDc0LCJqdGkiOiJkODM5ZmI5YWY5M2M0NzVlODUwODE1YmUxM2M3YzQxOSJ9.G9iSOi6JQRXYQRtXpWuiVF7lfWs6xv7IsZZUDCLb32A',
-      //   GUID: 'b1da407ce0a5408b847f4151d41783ff',
-      // }
+    // url: (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+    //   return new Promise((resolve, reject) => {
+    //     console.log('🚀 ~ requestOptions - url ', task, upfile, chunk)
+    //     setTimeout(() => {
+    //       resolve('http://ecm.test.work.zving.com/catalogs/4751/files/upload')
+    //     }, 1000)
+    //   })
+    //   // console.log('🚀 ~ requestOptions - url ', task, upfile, chunk)
+    //   // return 'http://ecm.test.work.zving.com/catalogs/4751/files/upload'
+    // },
+    url: 'http://ecm.test.work.zving.com/catalogs/4751/files/upload',
+    // headers: (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+    //   return new Promise((resolve, reject) => {
+    //     console.log('🚀 ~ requestOptions - headers ', task, upfile, chunk)
+    //     setTimeout(() => {
+    //       resolve({
+    //         CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
+    //         TOKEN:
+    //           'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwODk2NjA4NiwiaWF0IjoxNjA4MzYxMjg2LCJqdGkiOiI3MzVmZjZmZGQxODk0YzAxOWU3MmEzNTI0NjQ4MTRiZCJ9.e1hCx-hT1Lg16otoR0vctHez12GlCSUHdpuBbP6nDYs',
+    //         GUID: 'b1da407ce0a5408b847f4151d41783ff',
+    //       })
+    //     }, 1000)
+    //   })
+    // },
+    headers: {
+      CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
+      TOKEN:
+        'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwODk2NjA4NiwiaWF0IjoxNjA4MzYxMjg2LCJqdGkiOiI3MzVmZjZmZGQxODk0YzAxOWU3MmEzNTI0NjQ4MTRiZCJ9.e1hCx-hT1Lg16otoR0vctHez12GlCSUHdpuBbP6nDYs',
+      GUID: 'b1da407ce0a5408b847f4151d41783ff',
     },
     body: (task: UploadTask, uploadfile: UploadFile, chunk: FileChunk, baseParams: Obj) => {
       return new Promise((resolve, reject) => {

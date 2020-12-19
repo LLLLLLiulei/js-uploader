@@ -1,6 +1,6 @@
-import { UploadFile } from '../../interface'
+import { TPromise, UploadFile } from '../../interface'
 
-export const fileReader = (uploadfile: UploadFile, start?: number, end?: number): Blob | Promise<Blob> => {
+export const fileReader = (uploadfile: UploadFile, start?: number, end?: number): TPromise<Blob> => {
   return new Promise((resolve, reject) => {
     let raw: Nullable<Blob> = uploadfile.raw
     if (!raw) {

@@ -1,5 +1,15 @@
 import { Observable, Subscriber, of, from, forkJoin, Subscription, PartialObserver } from 'rxjs'
-import { ID, Obj, StatusCode, UploaderOptions, UploadFile, UploadTask, FileChunk, MaybePromise } from '../../interface'
+import {
+  ID,
+  Obj,
+  StatusCode,
+  UploaderOptions,
+  UploadFile,
+  UploadTask,
+  FileChunk,
+  MaybePromise,
+  TPromise,
+} from '../../interface'
 import { fileReader } from '../helpers/file-reader'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
 import { FileStore, Storage } from '../modules'
@@ -146,7 +156,7 @@ export default abstract class TaskHandler extends Base {
   protected readFile (uploadfile: UploadFile, start?: number, end?: number): Observable<Blob> {
     return new Observable((ob: Subscriber<Blob>) => {
       let reader = this.uploaderOptions.readFileFn
-      let res: Promise<Blob> | Blob
+      let res: TPromise<Blob>
       if (typeof reader === 'function') {
         res = reader(this.task, uploadfile, start, end)
       } else {
@@ -159,9 +169,5 @@ export default abstract class TaskHandler extends Base {
 
   protected isResumable (): Boolean {
     return !!this.uploaderOptions.resumable
-  }
-
-  protected hookWrap<T extends MaybePromise> (fn: T): Promise<any> {
-    return (fn as any) || Promise.resolve()
   }
 }
