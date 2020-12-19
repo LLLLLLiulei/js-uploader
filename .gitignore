@@ -3,3 +3,5 @@ node_modules/*
 docs/*
 yarn.lock
 yarn-error.log
+
+publish/*

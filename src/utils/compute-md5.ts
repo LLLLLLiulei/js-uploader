@@ -1,7 +1,7 @@
 import { scheduleWork } from './schedule-work'
 
 export const computeMd5 = (file: Blob | ArrayBuffer): Promise<string> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const spark = new SparkMD5.ArrayBuffer()
     let currentChunk = 0
     const chunkSize: number = 1024 ** 2 * 4

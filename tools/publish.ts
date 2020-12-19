@@ -16,32 +16,28 @@ const gitStdout = gitExecResult.stdout
 
 if (!tagReg.test(gitStdout)) {
   console.info('Not a release commit.')
-  process.exit(0)
+  // process.exit(0)
 }
 
 const pkg = require('../package.json')
 const README = fs.readFileSync(resolve(process.cwd(), 'README.md'), 'utf8')
 
-const cjsPkg = { ...pkg, main: './index.js' }
+const overWritePkg = { ...pkg, main: './dist/cjs/index.js', module: './dist/esm/index.js' }
 
 const write = (distPath: string, data: any) => {
   return new Promise((res, reject) => {
     fs.writeFile(resolve(process.cwd(), distPath), data, 'utf8', (err) => {
       if (!err) {
-        return res()
+        return res(void 0)
       }
       reject(err)
     })
   })
 }
 
-const cjsPkgData = JSON.stringify(cjsPkg, null, 2)
+const pkgData = JSON.stringify(overWritePkg, null, 2)
 
-Promise.all([
-  write('dist/cjs/package.json', cjsPkgData),
-  write('dist/esm/README.md', README),
-  write('dist/cjs/README.md', README),
-])
+Promise.all([write('publish/package.json', pkgData), write('publish/README.md', README)])
   .then(() => {
     // const { stderr, stdout } = shelljs.exec('npm publish dist/cjs')
     // if (stderr) {
