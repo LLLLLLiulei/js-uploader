@@ -1,5 +1,5 @@
 import { Uploader } from './uploader'
-import { AjaxResponse, EventType, FileChunk, StringKeyObject, UploadFile, UploadTask } from './interface'
+import { AjaxResponse, EventType, FileChunk, Obj, UploadFile, UploadTask } from './interface'
 import * as $ from 'jquery'
 import { ajax } from 'rxjs/ajax'
 import { Observable } from 'rxjs'
@@ -62,7 +62,7 @@ const uploader = Uploader.create({
       //   GUID: 'b1da407ce0a5408b847f4151d41783ff',
       // }
     },
-    body: (task: UploadTask, uploadfile: UploadFile, chunk: FileChunk, baseParams: StringKeyObject) => {
+    body: (task: UploadTask, uploadfile: UploadFile, chunk: FileChunk, baseParams: Obj) => {
       return new Promise((resolve, reject) => {
         console.log('🚀 ~ requestOptions - headers ', task, uploadfile, chunk, baseParams)
         setTimeout(() => {
@@ -124,7 +124,7 @@ const uploader = Uploader.create({
       resolve(upfile.raw!.slice(start, end))
     })
   },
-  requestBodyProcessFn (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: StringKeyObject) {
+  requestBodyProcessFn (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) {
     return new Promise((resolve) => {
       console.log('🚀 ~ requestBodyProcessFn ', arguments)
       setTimeout(() => {
@@ -216,7 +216,7 @@ const uploader = Uploader.create({
       }, 1000)
     })
   },
-  beforeUploadRequestSend (task: UploadTask, file: UploadFile, chunk: FileChunk, requestParams: StringKeyObject) {
+  beforeUploadRequestSend (task: UploadTask, file: UploadFile, chunk: FileChunk, requestParams: Obj) {
     return new Promise((resolve) => {
       console.log('🚀 ~ beforeUploadRequestSend ', arguments)
       setTimeout(() => {

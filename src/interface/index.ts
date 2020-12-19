@@ -71,7 +71,7 @@ export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export type OSS = false | 'qiniu' | 'aws-s3'
 
-export type StringKeyObject = { [key: string]: any }
+export type Obj = { [key: string]: any }
 
 export type FileStatus = StatusCode
 
@@ -104,9 +104,9 @@ export interface FileChunk {
   // 状态
   status: ChunkStatus
   // 响应
-  response: StringKeyObject
+  response: Obj
   // 额外信息
-  extraInfo: StringKeyObject
+  extraInfo: Obj
 }
 
 /**
@@ -142,9 +142,9 @@ export interface UploadFile {
   // 状态
   status: FileStatus
   // 响应数据（最后一分块响应数据）
-  response: StringKeyObject
+  response: Obj
   // 额外信息
-  extraInfo: StringKeyObject
+  extraInfo: Obj
 }
 
 /**
@@ -177,7 +177,7 @@ export interface UploadTask {
   // 添加时间
   addTime: Date
   // 额外信息
-  extraInfo: StringKeyObject
+  extraInfo: Obj
 }
 
 /**
@@ -223,17 +223,8 @@ export interface OssOptions {
 export interface RequestOptions {
   // 上传请求url
   url: string | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => string | Promise<string>)
-  headers?:
-    | StringKeyObject
-    | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => StringKeyObject | Promise<StringKeyObject>)
-  body?:
-    | StringKeyObject
-    | ((
-        task: UploadTask,
-        upfile: UploadFile,
-        chunk: FileChunk,
-        params: StringKeyObject,
-      ) => StringKeyObject | Promise<StringKeyObject>)
+  headers?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => Obj | Promise<Obj>)
+  body?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => Obj | Promise<Obj>)
   timeout?: number
   withCredentials?: boolean
 }
@@ -293,12 +284,7 @@ export interface UploaderOptions {
   readFileFn?: (task: UploadTask, upfile: UploadFile, start?: number, end?: number) => Blob | Promise<Blob>
 
   // 处理requestBody的方法
-  requestBodyProcessFn?: (
-    task: UploadTask,
-    upfile: UploadFile,
-    chunk: FileChunk,
-    params: StringKeyObject,
-  ) => Promise<any> | any
+  requestBodyProcessFn?: (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => Promise<any> | any
 
   // 文件添加前（选择文件后）
   beforeFilesAdd?: (files: File[]) => MaybePromise
@@ -325,12 +311,7 @@ export interface UploaderOptions {
   fileReaded?: (task: UploadTask, file: UploadFile, chunk: FileChunk, data: Blob) => MaybePromise
 
   // 上传请求发送前
-  beforeUploadRequestSend?: (
-    task: UploadTask,
-    file: UploadFile,
-    chunk: FileChunk,
-    requestParams: StringKeyObject,
-  ) => MaybePromise
+  beforeUploadRequestSend?: (task: UploadTask, file: UploadFile, chunk: FileChunk, requestParams: Obj) => MaybePromise
 
   // 处理上传请求响应前
   beforeUploadResponseProcess?: (
@@ -343,7 +324,7 @@ export interface UploaderOptions {
 
 export type RequestOpts = {
   url: string
-  headers: StringKeyObject
+  headers: Obj
   body: UploadFormData
 }
 

@@ -1,7 +1,7 @@
 import TaskHandler from './TaskHandler'
 import {
   ID,
-  StringKeyObject,
+  Obj,
   EventType,
   StatusCode,
   ChunkResponse,
@@ -419,7 +419,7 @@ export class CommonsTaskHandler extends TaskHandler {
     uploadParams: UploadFormData,
   ): Observable<UploadFormData> {
     return this.getRequestParams(uploadFile, chunk, uploadParams).pipe(
-      map((userParams: StringKeyObject | undefined) => Object.assign(uploadParams, userParams || {})),
+      map((userParams: Obj | undefined) => Object.assign(uploadParams, userParams || {})),
     )
   }
 

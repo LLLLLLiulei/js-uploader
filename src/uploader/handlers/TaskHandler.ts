@@ -1,14 +1,5 @@
 import { Observable, Subscriber, of, from, forkJoin, Subscription, PartialObserver } from 'rxjs'
-import {
-  ID,
-  StringKeyObject,
-  StatusCode,
-  UploaderOptions,
-  UploadFile,
-  UploadTask,
-  FileChunk,
-  MaybePromise,
-} from '../../interface'
+import { ID, Obj, StatusCode, UploaderOptions, UploadFile, UploadTask, FileChunk, MaybePromise } from '../../interface'
 import { fileReader } from '../helpers/file-reader'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
 import { FileStore, Storage } from '../modules'
@@ -81,7 +72,7 @@ export default abstract class TaskHandler extends Base {
     })
   }
 
-  protected toFormData (params: StringKeyObject): FormData {
+  protected toFormData (params: Obj): FormData {
     const formData = new FormData()
     Object.keys(params).forEach((k) => formData.append(k, params[k]))
     return formData
@@ -91,15 +82,11 @@ export default abstract class TaskHandler extends Base {
     return this.createObserverble(this.uploaderOptions.requestOptions.url, this.task, uploadfile, chunk)
   }
 
-  protected getRequestHeaders (uploadfile: UploadFile, chunk: FileChunk): Observable<StringKeyObject | undefined> {
+  protected getRequestHeaders (uploadfile: UploadFile, chunk: FileChunk): Observable<Obj | undefined> {
     return this.createObserverble(this.uploaderOptions.requestOptions.headers, this.task, uploadfile, chunk)
   }
 
-  protected getRequestParams (
-    uploadfile: UploadFile,
-    chunk: FileChunk,
-    baseParams: StringKeyObject,
-  ): Observable<StringKeyObject | undefined> {
+  protected getRequestParams (uploadfile: UploadFile, chunk: FileChunk, baseParams: Obj): Observable<Obj | undefined> {
     return this.createObserverble(this.uploaderOptions.requestOptions.body, this.task, uploadfile, chunk, baseParams)
   }
 
