@@ -1,4 +1,4 @@
-import { FileChunk, ID, StatusCode } from '../../types'
+import { FileChunk, ID, StatusCode } from '../../interface'
 
 export const chunkFactory = (id: ID, index: number, start: number, end: number, size: number): FileChunk => {
   const chunk: FileChunk = {

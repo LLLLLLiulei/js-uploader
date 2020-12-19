@@ -1,5 +1,5 @@
 import { idGenerator } from '../../utils/id-generator'
-import { StatusCode, UploadFile, UploadTask } from '../../types'
+import { StatusCode, UploadFile, UploadTask } from '../../interface'
 
 export const taskFactory = (file: UploadFile, singleFileTask?: boolean): UploadTask => {
   let pos = file.relativePath.indexOf('/')

@@ -1,4 +1,4 @@
-import { UploadTask, UploaderOptions } from '../../types'
+import { UploadTask, UploaderOptions } from '../../interface'
 import { CommonsTaskHandler } from './CommonsTaskHandler'
 import { QiniuOSSTaskHandler } from './QiniuOSSTaskHandler'
 import TaskHandler from './TaskHandler'

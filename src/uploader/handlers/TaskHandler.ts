@@ -8,7 +8,7 @@ import {
   UploadTask,
   FileChunk,
   MaybePromise,
-} from '../../types'
+} from '../../interface'
 import { fileReader } from '../helpers/file-reader'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
 import { FileStore, Storage } from '../modules'

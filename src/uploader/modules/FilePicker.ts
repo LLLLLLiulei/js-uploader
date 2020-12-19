@@ -1,6 +1,6 @@
 import { fromEvent, Observable } from 'rxjs'
 import { filter, map, tap } from 'rxjs/operators'
-import { FilePickerOptions } from '../../types'
+import { FilePickerOptions } from '../../interface'
 
 export class FilePicker {
   $el: HTMLInputElement

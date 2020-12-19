@@ -1,4 +1,4 @@
-import { ID, StatusCode, EventType, UploaderOptions, UploadFile, UploadTask } from '../types'
+import { ID, StatusCode, EventType, UploaderOptions, UploadFile, UploadTask } from '../interface'
 import { fileFactory } from './helpers/file-factory'
 import { FileStore, Storage, FileDragger, FilePicker } from './modules'
 import { handle as handleTask } from './handlers'

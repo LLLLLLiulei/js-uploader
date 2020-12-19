@@ -1,8 +1,9 @@
 import { Uploader } from './uploader'
-import { AjaxResponse, BaseParams, EventType, FileChunk, StringKeyObject, UploadFile, UploadTask } from './types'
+import { AjaxResponse, EventType, FileChunk, StringKeyObject, UploadFile, UploadTask } from './interface'
 import * as $ from 'jquery'
 import { ajax } from 'rxjs/ajax'
 import { Observable } from 'rxjs'
+import { FileStore } from './uploader/modules'
 
 let tokenMap = {}
 const uploader = Uploader.create({
@@ -49,7 +50,7 @@ const uploader = Uploader.create({
           resolve({
             CMPID: 'f05dd7da36ba4e238f9c1f053c2e76e3',
             TOKEN:
-              'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJhZG1pbiIsImV4cCI6MTYwODE4MzcwNywiaWF0IjoxNjA3NTc4OTA3LCJqdGkiOiI2Zjc5YTE2ODg0MzU0MGNhYWMzNzJmOGU0YWU2OGU3ZiJ9.6SfBHOOaLVamguqpZgh2r9Zvd2pR_LqVvqGlOcAdan8',
+              'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlY20gY2xpZW50IiwiaXNzIjoienZpbmciLCJjbGFpbURlZmF1bHRLZXkiOiJsaXVsZWkwMSIsImV4cCI6MTYwODk2NjA4NiwiaWF0IjoxNjA4MzYxMjg2LCJqdGkiOiI3MzVmZjZmZGQxODk0YzAxOWU3MmEzNTI0NjQ4MTRiZCJ9.e1hCx-hT1Lg16otoR0vctHez12GlCSUHdpuBbP6nDYs',
             GUID: 'b1da407ce0a5408b847f4151d41783ff',
           })
         }, 1000)
@@ -84,13 +85,13 @@ const uploader = Uploader.create({
       // })
     },
   },
-  singleFileTask: true,
+  singleFileTask: false,
   computeFileHash: true,
   computeChunkHash: true,
   autoUpload: false,
   maxRetryTimes: 3,
   retryInterval: 3000,
-  resumable: true,
+  resumable: false,
   chunked: true,
   chunkSize: 4 * 1024 ** 2,
   chunkConcurrency: 2,
@@ -138,23 +139,33 @@ const uploader = Uploader.create({
       console.log('🚀 ~ beforeFilesAdd ', arguments)
       setTimeout(() => {
         resolve('')
-      }, 1000)
+      })
     })
   },
   filesAdded (files: UploadFile[]) {
     return new Promise((resolve) => {
       console.log('🚀 ~ filesAdded ', arguments)
+      files.forEach((file) => {
+        file.extraInfo = {
+          now: Date.now(),
+        }
+      })
       setTimeout(() => {
         resolve('')
-      }, 1000)
+      })
     })
   },
   beforeTasksAdd (tasks: UploadTask[]) {
     return new Promise((resolve) => {
       console.log('🚀 ~ beforeTasksAdd ', arguments)
+      tasks.forEach((task) => {
+        task.extraInfo = {
+          now: Date.now(),
+        }
+      })
       setTimeout(() => {
         resolve('')
-      }, 1000)
+      })
     })
   },
   beforeTaskStart (task: UploadTask) {
@@ -338,7 +349,7 @@ setTimeout(() => {
   })
 })
 
-Object.assign(window, { up: uploader })
+Object.assign(window, { up: uploader, store: FileStore })
 
 Object.values(EventType).forEach((evt) => {
   uploader.on(evt, function () {

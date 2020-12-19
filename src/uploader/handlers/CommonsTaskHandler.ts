@@ -12,7 +12,7 @@ import {
   UploadTask,
   FileChunk,
   BaseParams,
-} from '../../types'
+} from '../../interface'
 import {
   forkJoin,
   from,

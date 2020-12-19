@@ -1,6 +1,6 @@
 import { Observable, fromEvent, from } from 'rxjs'
 import { tap, mergeMap } from 'rxjs/operators'
-import { FileDraggerOptions } from '../../types'
+import { FileDraggerOptions } from '../../interface'
 
 export class FileDragger {
   $el: HTMLElement

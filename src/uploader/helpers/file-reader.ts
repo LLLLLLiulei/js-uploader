@@ -1,4 +1,4 @@
-import { UploadFile } from '../../types'
+import { UploadFile } from '../../interface'
 
 export const fileReader = (uploadfile: UploadFile, start?: number, end?: number): Blob | Promise<Blob> => {
   return new Promise((resolve, reject) => {
