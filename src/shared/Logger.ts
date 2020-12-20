@@ -27,7 +27,7 @@ export class ContextLogger {
   ) {}
 
   private invoke (method: string, message: any[]) {
-    let output = ''
+    let output: Array<any> = []
     if (this.formatter) {
       const params: [string, Level, ...any[]] = [this.name, this.level, ...message]
       output = this.formatter.apply(this, params)
