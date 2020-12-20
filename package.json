@@ -1,5 +1,5 @@
 {
-  "name": "js-file-uploader",
+  "name": "js-uploader",
   "version": "0.0.0-beta",
   "description": "A JavaScript library for file upload",
   "main": "publish/dist/cjs/index.js",
@@ -31,10 +31,10 @@
   "author": "LLLLLLiulei <liulei_real@foxmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/LLLLLLiulei/js-file-uploader.git"
+    "url": "https://github.com/LLLLLLiulei/js-uploader.git"
   },
-  "bugs": "https://github.com/LLLLLLiulei/js-file-uploader/issues",
-  "homepage": "https://github.com/LLLLLLiulei/js-file-uploader",
+  "bugs": "https://github.com/LLLLLLiulei/js-uploader/issues",
+  "homepage": "https://github.com/LLLLLLiulei/js-uploader",
   "license": "MIT",
   "devDependencies": {
     "@babel/cli": "^7.10.4",
