@@ -1,6 +1,6 @@
 {
-  "name": "rx-uploader",
-  "version": "0.0.1",
+  "name": "js-file-uploader",
+  "version": "0.0.0",
   "description": "A JavaScript library for file upload",
   "main": "publish/dist/cjs/index.js",
   "module": "publish/dist/esm/index.js",
@@ -30,10 +30,10 @@
   "author": "LLLLLLiulei <liulei_real@foxmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/LLLLLLiulei/rx-uploader.git"
+    "url": "https://github.com/LLLLLLiulei/js-file-uploader.git"
   },
-  "bugs": "https://github.com/LLLLLLiulei/rx-uploader/issues",
-  "homepage": "https://github.com/LLLLLLiulei/rx-uploader",
+  "bugs": "https://github.com/LLLLLLiulei/js-file-uploader/issues",
+  "homepage": "https://github.com/LLLLLLiulei/js-file-uploader",
   "license": "MIT",
   "devDependencies": {
     "@babel/cli": "^7.10.4",

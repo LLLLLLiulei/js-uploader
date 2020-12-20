@@ -39,7 +39,7 @@ const pkgData = JSON.stringify(overWritePkg, null, 2)
 
 Promise.all([write('publish/package.json', pkgData), write('publish/README.md', README)])
   .then(() => {
-    // const { stderr, stdout } = shelljs.exec('npm publish dist/cjs')
+    // const { stderr, stdout } = shelljs.exec('npm publish publish')
     // if (stderr) {
     //   throw stderr
     // }
