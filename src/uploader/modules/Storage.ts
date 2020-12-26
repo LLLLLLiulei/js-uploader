@@ -1,4 +1,4 @@
-import * as localforage from 'localforage'
+import localforage = require('localforage')
 import { extendPrototype as extendRemoveitems } from 'localforage-removeitems'
 import { extendPrototype as extendSetitems } from 'localforage-setitems'
 import { extendPrototype as extendGetitems } from 'localforage-getitems'
