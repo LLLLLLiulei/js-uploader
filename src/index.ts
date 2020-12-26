@@ -1,3 +1,6 @@
 import './global'
 import 'tslib'
 export * from './uploader'
+export * from './interface'
+export * from './shared'
+export * from './utils'
