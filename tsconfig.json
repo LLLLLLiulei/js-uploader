@@ -8,6 +8,7 @@
     "suppressImplicitAnyIndexErrors": true,
     // "noUnusedLocals": true,
     // "noUnusedParameters": true,
+    "esModuleInterop": true,
     "noImplicitReturns": true,
     "strict": true,
     "allowJs": true,

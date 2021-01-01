@@ -167,7 +167,7 @@ export interface UploadTask {
   // 文件列表
   fileList: UploadFile[]
   // 文件总大小
-  filSize: number
+  fileSize: number
   // oss类型
   oss: OSS
   // 进度

@@ -1,6 +1,6 @@
 {
   "name": "js-uploader",
-  "version": "0.0.0-beta",
+  "version": "0.0.1-beta",
   "description": "A JavaScript library for file upload",
   "main": "publish/dist/cjs/index.js",
   "module": "publish/dist/esm/index.js",
@@ -8,7 +8,7 @@
     "build": "npm-run-all clear_publish copy_src build_cjs build_esm",
     "build_cjs": "npm-run-all clean_dist_cjs compile_cjs",
     "build_esm": "npm-run-all clean_dist_es compile_esm",
-    "clear_publish": "rm -rf ./publish/dist/cjs",
+    "clear_publish": "rm -rf ./publish/",
     "clean_dist_cjs": "rm -rf ./publish/dist/cjs",
     "clean_dist_es": "rm -rf ./publish/dist/esm",
     "compile_cjs": "tsc publish/src/index.ts -m commonjs --outDir publish/dist/cjs --sourcemap --target ES5 -d --diagnostics --pretty --strict --noImplicitReturns --downlevelIteration --noUnusedLocals --noUnusedParameters --strict --suppressImplicitAnyIndexErrors --moduleResolution node --noEmitHelpers --importHelpers --lib dom,es5,es2015,es2016,es2017",
@@ -44,6 +44,7 @@
     "@types/jquery": "^3.5.2",
     "@types/node": "^14.0.27",
     "@types/shelljs": "^0.8.8",
+    "aws-sdk": "^2.814.0",
     "babel-loader": "^8.1.0",
     "extract-text-webpack-plugin": "^4.0.0-beta.0",
     "html-webpack-plugin": "^4.3.0",
@@ -82,6 +83,7 @@
     "localforage-setitems": "^1.4.0",
     "localforage-startswith": "^1.4.0",
     "rxjs": "^6.5.3",
+    "aws-sdk": "^2.814.0",
     "tslib": "^1.10.0"
   },
   "prettier": {

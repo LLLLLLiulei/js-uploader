@@ -180,12 +180,14 @@ export class Uploader extends Base {
   pause (task?: UploadTask): void {
     this.action.next('pause')
     const fn = (task: UploadTask) => {
-      const handler = this.taskHandlerMap.get(task.id)
-      handler?.pause()
-      if (!handler) {
-        task.status = StatusCode.Pause
-        // 任务暂停事件
-        this.emit(EventType.TaskPause, task)
+      if (task.status !== StatusCode.Complete) {
+        const handler = this.taskHandlerMap.get(task.id)
+        handler?.pause()
+        if (!handler) {
+          task.status = StatusCode.Pause
+          // 任务暂停事件
+          this.emit(EventType.TaskPause, task)
+        }
       }
     }
     if (task) {
@@ -300,7 +302,10 @@ export class Uploader extends Base {
       }
     } else {
       let sub: Nullable<Subscription> = scheduled(this.taskQueue, animationFrameScheduler)
-        .pipe(takeUntil(this.pause$))
+        .pipe(
+          filter((tsk: UploadTask) => tsk.status !== StatusCode.Complete),
+          takeUntil(this.pause$),
+        )
         .subscribe({
           next: (tsk) => this.taskSubject.next(tsk),
           complete: () => {
@@ -353,7 +358,7 @@ export class Uploader extends Base {
     })
   }
 
-  private initFilePickersAndDraggers () {
+  initFilePickersAndDraggers () {
     const { filePicker, fileDragger } = this.options
     const filePickers = Array.isArray(filePicker) ? filePicker : filePicker ? [filePicker] : null
     const fileDraggers = Array.isArray(fileDragger) ? fileDragger : fileDragger ? [fileDragger] : null
@@ -516,7 +521,7 @@ export class Uploader extends Base {
               if (existsTask) {
                 existsTask.fileIDList.push(file.id)
                 existsTask.fileList.push(file)
-                existsTask.filSize += file.size
+                existsTask.fileSize += file.size
                 updateTasks.add(existsTask)
               } else {
                 newTask = taskFactory(file, singleFileTask)

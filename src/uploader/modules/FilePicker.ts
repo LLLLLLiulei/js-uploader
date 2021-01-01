@@ -39,6 +39,7 @@ export class FilePicker {
   }
 
   private setInputAttr (multiple?: boolean, directory?: boolean, accept: string[] = []) {
+    this.$el.setAttribute('type', 'file')
     multiple && this.$el.setAttribute('multiple', 'multiple')
     directory && this.$el.setAttribute('webkitdirectory', 'webkitdirectory')
     accept?.length && this.$el.setAttribute('accept', accept.join())

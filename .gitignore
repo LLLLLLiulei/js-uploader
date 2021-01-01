@@ -5,3 +5,5 @@ yarn.lock
 yarn-error.log
 
 publish/*
+
+demo/node_modules/*

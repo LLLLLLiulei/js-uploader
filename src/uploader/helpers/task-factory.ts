@@ -9,7 +9,7 @@ export const taskFactory = (file: UploadFile, singleFileTask?: boolean): UploadT
     name,
     type: pos === -1 ? 'file' : 'dir',
     fileIDList: [file.id],
-    filSize: file.size,
+    fileSize: file.size,
     fileList: [file],
     extraInfo: {},
     oss: false,

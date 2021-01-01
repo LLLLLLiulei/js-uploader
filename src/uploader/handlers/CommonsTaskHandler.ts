@@ -448,7 +448,7 @@ export class CommonsTaskHandler extends TaskHandler {
           taskProgress = Math.max(file.progress, this.task.progress || 0)
         } else {
           let taskUploaded = this.task.fileList.reduce(reduceFn, 0) || 0
-          taskProgress = Math.round((taskUploaded / this.task.filSize) * 100)
+          taskProgress = Math.round((taskUploaded / this.task.fileSize) * 100)
           taskProgress = Math.max(taskProgress, this.task.progress || 0)
         }
         this.task.progress = taskProgress
