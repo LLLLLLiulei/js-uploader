@@ -4,7 +4,7 @@ js-uploader是一个简单易用的浏览器端文件上传库，支持文件拖
 
 demo：https://github.com/LLLLLLiulei/uploader-demo.git
 
-![image](http://slimdoc.qiniu.var123.cn/jsuploader.gif)
+![image](https://github.com/LLLLLLiulei/js-uploader/blob/main/demo.gif?raw=true)
 
 ## 安装
 
