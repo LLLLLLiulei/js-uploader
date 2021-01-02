@@ -1,2 +1,2 @@
 export * from './Uploader'
-export * from './modules/FileStore'
+export * from './modules'

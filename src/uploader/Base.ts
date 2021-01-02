@@ -1,7 +1,7 @@
 import { EventEmitter, Storage, FileStore } from './modules'
-import { Observable, from, of, Subscriber, Subscription, forkJoin } from 'rxjs'
-import { concatMap } from 'rxjs/operators'
-import { FileChunk, ID, MaybePromise, TPromise, UploadFile, UploadTask } from '../interface'
+import { Observable, from, of, Subscriber, Subscription, forkJoin, NEVER } from 'rxjs'
+import { concatMap, last, mapTo, mergeMap, takeUntil, tap } from 'rxjs/operators'
+import { EventType, FileChunk, ID, MaybePromise, TPromise, UploadFile, UploadTask } from '../interface'
 import { Logger } from '../shared/Logger'
 
 export default class Base extends EventEmitter {
@@ -79,15 +79,22 @@ export default class Base extends EventEmitter {
     return Storage.BinaryLike.setItem(key, blob)
   }
 
-  protected presistTask (...tasks: UploadTask[]): Observable<UploadTask[]> {
+  protected presistTask (tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
     Logger.info('Uploader -> presistTask -> tasks', tasks)
-    tasks = tasks || []
+    const tryTakeUntil = () => takeUntil(nofication$ || NEVER)
     const job$ = tasks.map((task) => {
-      let obs = task.fileIDList.map((id) => from(this.presistUploadFile(FileStore.get(id))))
       const uptask: UploadTask = Object.assign({}, task, { fileList: [] })
-      return forkJoin(obs).pipe(concatMap(() => from(Storage.UploadTask.setItem(String(uptask.id), uptask))))
+      return from(task.fileIDList).pipe(
+        mergeMap((id) => from(this.presistUploadFile(FileStore.get(id)))),
+        last(),
+        concatMap(() => from(Storage.UploadTask.setItem(String(uptask.id), uptask))),
+        tap(() => {
+          this.emit(EventType.TaskPresist, task)
+        }),
+        tryTakeUntil(),
+      )
     })
-    return forkJoin(job$)
+    return forkJoin(job$).pipe(mapTo(tasks))
   }
 
   protected removeChunkFromStroage (...chunks: FileChunk[] | ID[]) {
@@ -127,6 +134,10 @@ export default class Base extends EventEmitter {
         }),
       )
     }
+  }
+
+  protected clearStorage (): Promise<unknown> {
+    return Promise.all([Storage.BinaryLike.clear(), Storage.UploadFile.clear(), Storage.UploadTask.clear()])
   }
 
   protected hookWrap<T extends MaybePromise> (fn: T): Promise<any> {

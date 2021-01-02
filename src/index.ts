@@ -1,5 +1,5 @@
-import './global'
 import 'tslib'
+import './global'
 export * from './uploader'
 export * from './interface'
 export * from './shared'

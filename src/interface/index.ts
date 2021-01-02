@@ -24,6 +24,8 @@ export enum EventType {
   TaskRestore = 'task-restore',
   // 任务持久化
   TaskPresist = 'task-presist',
+  // 任务持久化
+  TasksPresist = 'tasks-presist',
   // 任务进入等待队列
   TaskWaiting = 'task-waiting',
   // 任务开始上传

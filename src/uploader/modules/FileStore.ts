@@ -21,7 +21,7 @@ export class FileStore {
     if (this.isEmpty()) {
       return
     }
-    const k = FileStore.store.keys()[0]
+    const k = FileStore.store.keys().next().value
     const file = FileStore.store.get(k)
     FileStore.store.delete(k)
     return file

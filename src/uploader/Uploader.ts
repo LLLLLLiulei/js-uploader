@@ -224,10 +224,11 @@ export class Uploader extends Base {
     let queue = this.taskQueue.slice()
     const fn = (timeRemaining?: () => number) => {
       do {
-        this.removeTask(...queue.splice(0, 100))
+        this.removeTask(queue.splice(0, 100), true)
       } while (queue.length && timeRemaining && timeRemaining?.())
       queue.length ? scheduleWork(fn) : unsubscribe()
     }
+    this.clearStorage()
     scheduleWork(fn)
   }
 
@@ -255,13 +256,16 @@ export class Uploader extends Base {
     this.subscription.unsubscribe()
   }
 
-  private removeTask (...tasks: UploadTask[]) {
+  private removeTask (tasks: UploadTask | UploadTask[], clear?: boolean) {
+    if (!Array.isArray(tasks)) {
+      tasks = [tasks]
+    }
     tasks.forEach((task) => {
       let index = this.taskQueue.findIndex((i) => i.id === task?.id)
       index > -1 && this.taskQueue.splice(index, 1)
       this.taskHandlerMap.get(task.id)?.abort()
       this.taskHandlerMap.delete(task.id)
-      this.removeTaskFromStroage(task)
+      !clear && this.removeTaskFromStroage(task)
       // 任务取消事件
       this.emit(EventType.TaskCancel, task)
     })
@@ -439,7 +443,7 @@ export class Uploader extends Base {
             resolve(tasks)
           }
           this.options.resumable
-            ? this.presistTask(...tasks).subscribe(() => resolveTask(tasks), reject)
+            ? this.presistTask(tasks).subscribe(() => resolveTask(tasks), reject)
             : resolveTask(tasks)
         })
     })
@@ -454,16 +458,18 @@ export class Uploader extends Base {
 
       const finish = (tasks: UploadTask[]) => {
         if (this.options.resumable) {
-          let sub: Nullable<Subscription> = this.presistTask(...tasks).subscribe({
-            error: (e) => reject(e),
-            complete: () => {
-              // 任务持久化事件
-              this.emit(EventType.TaskPresist, tasks)
-              sub?.unsubscribe()
-              sub = null
-              resolve(tasks)
-            },
-          })
+          let sub: Nullable<Subscription> = this.presistTask(tasks, this.clear$)
+            .pipe(takeUntil(this.clear$))
+            .subscribe({
+              error: (e) => reject(e),
+              complete: () => {
+                // 任务持久化事件
+                this.emit(EventType.TasksPresist, tasks)
+                sub?.unsubscribe()
+                sub = null
+                resolve(tasks)
+              },
+            })
         } else {
           resolve(tasks)
         }
