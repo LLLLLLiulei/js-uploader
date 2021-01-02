@@ -24,7 +24,7 @@ export class FilePicker {
     )
   }
   private createInput (opts: FilePickerOptions): HTMLInputElement {
-    let id: string = opts.$el as string
+    let id: string = String(opts.$el).replace(/^[#.]*/, '')
     const $input = document.createElement('input')
     $input.id = id
     $input.setAttribute('type', 'file')
