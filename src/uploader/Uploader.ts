@@ -518,7 +518,7 @@ export class Uploader extends Base {
             if (!inFolder) {
               newTask = taskFactory(file, singleFileTask)
             } else {
-              let parentPath: string = file.relativePath.substring(0, pos)
+              let parentPath: string = file.relativePath.substring(0, pos + 1)
               let existsTask: UploadTask | undefined = [...this.taskQueue, ...newTasks].find((tsk) => {
                 return tsk.fileIDList.some((id) => FileStore.get(id)?.relativePath.startsWith(parentPath))
               })
