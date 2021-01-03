@@ -1,4 +1,4 @@
-import { idGenerator } from '../../utils/id-generator'
+import { idGenerator } from '../../utils'
 import { StatusCode, UploadFile, UploadTask } from '../../interface'
 
 export const taskFactory = (file: UploadFile, singleFileTask?: boolean): UploadTask => {

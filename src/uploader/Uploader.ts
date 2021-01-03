@@ -1,7 +1,6 @@
 import { ID, StatusCode, EventType, UploaderOptions, UploadFile, UploadTask } from '../interface'
-import { fileFactory } from './helpers/file-factory'
 import { FileStore, Storage, FileDragger, FilePicker } from './modules'
-import { handle as handleTask } from './handlers'
+import { handle as handleTask, TaskHandler } from './handlers'
 import { tap, map, concatMap, mapTo, mergeMap, filter, first, switchMap, takeUntil, last } from 'rxjs/operators'
 import {
   from,
@@ -18,11 +17,10 @@ import {
   asapScheduler,
   Subscriber,
 } from 'rxjs'
-import TaskHandler from './handlers/TaskHandler'
 import Base from './Base'
-import { scheduleWork } from '../utils/schedule-work'
-import { taskFactory } from './helpers/task-factory'
-import { Logger } from '../shared/Logger'
+import { scheduleWork } from '../utils'
+import { taskFactory, fileFactory } from './helpers'
+import { Logger } from '../shared'
 
 const defaultOptions: UploaderOptions = {
   requestOptions: {

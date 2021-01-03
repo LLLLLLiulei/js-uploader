@@ -1,8 +1,7 @@
 import { fromEvent, Observable } from 'rxjs'
 import { filter, map, tap } from 'rxjs/operators'
 import { FilePickerOptions } from '../../interface'
-import { Logger } from '../../shared/Logger'
-
+import { Logger } from '../../shared'
 export class FilePicker {
   $el: HTMLInputElement
   file$: Observable<File[]>
@@ -24,17 +23,20 @@ export class FilePicker {
     )
   }
   private createInput (opts: FilePickerOptions): HTMLInputElement {
-    let id: string = String(opts.$el).replace(/^[#.]*/, '')
-    const $input = document.createElement('input')
-    $input.id = id
+    let $input: Nullable<HTMLInputElement> = document.querySelector(opts.$el as string) || null
+    if (!$input) {
+      let id: string = String(opts.$el).replace(/^[#.]*/, '')
+      $input = document.createElement('input')
+      $input.id = id
+      Object.assign($input.style, {
+        visibility: 'hidden',
+        position: 'absolute',
+        width: '1px',
+        height: '1px',
+      })
+      document.body.append($input)
+    }
     $input.setAttribute('type', 'file')
-    Object.assign($input.style, {
-      visibility: 'hidden',
-      position: 'absolute',
-      width: '1px',
-      height: '1px',
-    })
-    document.body.append($input)
     return $input
   }
 

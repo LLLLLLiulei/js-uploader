@@ -2,7 +2,7 @@ import { EventEmitter, Storage, FileStore } from './modules'
 import { Observable, from, of, Subscriber, Subscription, forkJoin, NEVER } from 'rxjs'
 import { concatMap, last, mapTo, mergeMap, takeUntil, tap } from 'rxjs/operators'
 import { EventType, FileChunk, ID, MaybePromise, TPromise, UploadFile, UploadTask } from '../interface'
-import { Logger } from '../shared/Logger'
+import { Logger } from '../shared'
 
 export default class Base extends EventEmitter {
   protected constructor () {

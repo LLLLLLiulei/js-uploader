@@ -1,4 +1,4 @@
-import TaskHandler from './TaskHandler'
+import { TaskHandler } from './TaskHandler'
 import {
   ID,
   Obj,
@@ -38,11 +38,11 @@ import {
   distinctUntilChanged,
 } from 'rxjs/operators'
 import { ajax, AjaxResponse } from 'rxjs/ajax'
-import { retryWithDelay } from '../../operators/retry-with-delay'
+import { retryWithDelay } from '../../operators'
 import { assert } from '../../utils/assert'
-import { chunkFactory } from '../helpers/chunk-factory'
-import { scheduleWork } from '../../utils/schedule-work'
-import { Logger } from '../../shared/Logger'
+import { chunkFactory } from '../helpers'
+import { scheduleWork } from '../../utils'
+import { Logger } from '../../shared'
 
 export class CommonsTaskHandler extends TaskHandler {
   private readonly progressSubject: Subject<ProgressPayload> = new Subject()

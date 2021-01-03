@@ -1,6 +1,5 @@
-import { idGenerator } from '../../utils/id-generator'
-import { FileStore } from '../modules/FileStore'
-import { normalizePath } from '../../utils/normalize-path'
+import { idGenerator, normalizePath } from '../../utils'
+import { FileStore } from '../modules'
 import { StatusCode, UploadFile } from '../../interface'
 
 export const fileFactory = (file: File): UploadFile => {

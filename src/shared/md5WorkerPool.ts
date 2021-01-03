@@ -18,10 +18,6 @@ class MD5Worker extends Worker {
   id: string | number = MD5Worker.maxWorkerID++
   isBusy: boolean = false
 
-  constructor (stringUrl: string) {
-    super(stringUrl)
-  }
-
   execute (task?: Task): void {
     task = task || taskQueue.pop()
     if (task) {

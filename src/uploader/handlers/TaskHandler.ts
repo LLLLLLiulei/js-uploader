@@ -1,12 +1,12 @@
 import { Observable, Subscriber, of, from, forkJoin, Subscription, PartialObserver } from 'rxjs'
 import { ID, Obj, StatusCode, UploaderOptions, UploadFile, UploadTask, FileChunk, TPromise } from '../../interface'
-import { fileReader } from '../helpers/file-reader'
+import { fileReader } from '../helpers'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
 import { FileStore, Storage } from '../modules'
 import Base from '../Base'
-import { md5WorkerPool } from '../../shared/md5WorkerPool'
+import { md5WorkerPool } from '../../shared'
 
-export default abstract class TaskHandler extends Base {
+export abstract class TaskHandler extends Base {
   public task: UploadTask
   protected uploaderOptions: UploaderOptions
 
