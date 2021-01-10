@@ -10,19 +10,19 @@ export abstract class TaskHandler extends Base {
   public task: UploadTask
   protected uploaderOptions: UploaderOptions
 
-  constructor (task: UploadTask, uploaderOptions: UploaderOptions) {
+  constructor(task: UploadTask, uploaderOptions: UploaderOptions) {
     super()
     this.task = task
     this.uploaderOptions = uploaderOptions
   }
 
-  abstract handle (): this
-  abstract pause (): this
-  abstract resume (): this
-  abstract retry (): this
-  abstract abort (): this
+  abstract handle(): this
+  abstract pause(): this
+  abstract resume(): this
+  abstract retry(): this
+  abstract abort(): this
 
-  protected computeFileHash (file: Blob | ArrayBuffer): Observable<string> {
+  protected computeFileHash(file: Blob | ArrayBuffer): Observable<string> {
     return new Observable((ob: Subscriber<string>) => {
       const sparkMd5 = new SparkMD5.ArrayBuffer()
       let fileReader: Nullable<FileReader>
@@ -51,9 +51,9 @@ export abstract class TaskHandler extends Base {
     })
   }
 
-  protected computeFileMd5ByWorker (uploadFile: UploadFile): Observable<string>
-  protected computeFileMd5ByWorker (blob: Blob): Observable<string>
-  protected computeFileMd5ByWorker (data: UploadFile | Blob): Observable<string> {
+  protected computeFileMd5ByWorker(uploadFile: UploadFile): Observable<string>
+  protected computeFileMd5ByWorker(blob: Blob): Observable<string>
+  protected computeFileMd5ByWorker(data: UploadFile | Blob): Observable<string> {
     return new Observable((ob: Subscriber<string>) => {
       let result: any
       let sub: Nullable<Subscription>
@@ -72,25 +72,25 @@ export abstract class TaskHandler extends Base {
     })
   }
 
-  protected toFormData (params: Obj): FormData {
+  protected toFormData(params: Obj): FormData {
     const formData = new FormData()
     Object.keys(params).forEach((k) => formData.append(k, params[k]))
     return formData
   }
 
-  protected getServerURL (uploadfile: UploadFile, chunk: FileChunk): Observable<string> {
+  protected getServerURL(uploadfile: UploadFile, chunk: FileChunk): Observable<string> {
     return this.createObserverble(this.uploaderOptions.requestOptions.url, this.task, uploadfile, chunk)
   }
 
-  protected getRequestHeaders (uploadfile: UploadFile, chunk: FileChunk): Observable<Obj | undefined> {
+  protected getRequestHeaders(uploadfile: UploadFile, chunk: FileChunk): Observable<Obj | undefined> {
     return this.createObserverble(this.uploaderOptions.requestOptions.headers, this.task, uploadfile, chunk)
   }
 
-  protected getRequestParams (uploadfile: UploadFile, chunk: FileChunk, baseParams: Obj): Observable<Obj | undefined> {
+  protected getRequestParams(uploadfile: UploadFile, chunk: FileChunk, baseParams: Obj): Observable<Obj | undefined> {
     return this.createObserverble(this.uploaderOptions.requestOptions.body, this.task, uploadfile, chunk, baseParams)
   }
 
-  protected getUploadFileByID (id: ID): Observable<Nullable<UploadFile>> {
+  protected getUploadFileByID(id: ID): Observable<Nullable<UploadFile>> {
     return new Observable((ob: Subscriber<Nullable<UploadFile>>) => {
       let uploadFile = FileStore.get(id)
       let file$: Observable<Nullable<UploadFile>>
@@ -143,7 +143,7 @@ export abstract class TaskHandler extends Base {
     })
   }
 
-  protected readFile (uploadfile: UploadFile, start?: number, end?: number): Observable<Blob> {
+  protected readFile(uploadfile: UploadFile, start?: number, end?: number): Observable<Blob> {
     return new Observable((ob: Subscriber<Blob>) => {
       let reader = this.uploaderOptions.readFileFn
       let res: TPromise<Blob>
@@ -157,7 +157,7 @@ export abstract class TaskHandler extends Base {
     })
   }
 
-  protected isResumable (): Boolean {
+  protected isResumable(): Boolean {
     return !!this.uploaderOptions.resumable
   }
 }

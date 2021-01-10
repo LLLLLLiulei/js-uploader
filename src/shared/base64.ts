@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-export function utf8Encode (argString: any) {
+export function utf8Encode(argString: any) {
   // http://kevin.vanzonneveld.net
   // +   original by: Webtoolkit.info (http://www.webtoolkit.info/)
   // +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
@@ -66,7 +66,7 @@ export function utf8Encode (argString: any) {
   return utftext
 }
 
-export function base64Encode (data: any) {
+export function base64Encode(data: any) {
   // http://kevin.vanzonneveld.net
   // +   original by: Tyler Akins (http://rumkin.com)
   // +   improved by: Bayron Guevara
@@ -133,7 +133,7 @@ export function base64Encode (data: any) {
   return enc
 }
 
-export function base64Decode (data: string) {
+export function base64Decode(data: string) {
   // http://kevin.vanzonneveld.net
   // +   original by: Tyler Akins (http://rumkin.com)
   // +   improved by: Thunder.m
@@ -198,12 +198,12 @@ export function base64Decode (data: string) {
   return dec
 }
 
-export function urlSafeBase64Encode (v: any) {
+export function urlSafeBase64Encode(v: any) {
   v = base64Encode(v)
   return v.replace(/\//g, '_').replace(/\+/g, '-')
 }
 
-export function urlSafeBase64Decode (v: any) {
+export function urlSafeBase64Decode(v: any) {
   v = v.replace(/_/g, '/').replace(/-/g, '+')
   return base64Decode(v)
 }

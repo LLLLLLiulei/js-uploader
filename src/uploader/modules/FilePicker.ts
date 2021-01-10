@@ -6,7 +6,7 @@ export class FilePicker {
   $el: HTMLInputElement
   file$: Observable<File[]>
 
-  constructor (opts: FilePickerOptions) {
+  constructor(opts: FilePickerOptions) {
     const { $el, multiple, directory, accept } = opts
     if (!$el) {
       throw new Error()
@@ -22,7 +22,7 @@ export class FilePicker {
       }),
     )
   }
-  private createInput (opts: FilePickerOptions): HTMLInputElement {
+  private createInput(opts: FilePickerOptions): HTMLInputElement {
     let $input: Nullable<HTMLInputElement> = document.querySelector(opts.$el as string) || null
     if (!$input) {
       let id: string = String(opts.$el).replace(/^[#.]*/, '')
@@ -40,7 +40,7 @@ export class FilePicker {
     return $input
   }
 
-  private setInputAttr (multiple?: boolean, directory?: boolean, accept: string[] = []) {
+  private setInputAttr(multiple?: boolean, directory?: boolean, accept: string[] = []) {
     this.$el.setAttribute('type', 'file')
     multiple && this.$el.setAttribute('multiple', 'multiple')
     directory && this.$el.setAttribute('webkitdirectory', 'webkitdirectory')

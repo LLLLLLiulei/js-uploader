@@ -19,14 +19,14 @@ export class ContextLogger {
   public destroy = (): void => void 0
   private effects: Map<keyof LoggerAdapter, Function[]> = new Map()
 
-  constructor (
+  constructor(
     private name: string,
     private level: Level,
     private formatter?: Formatter,
     private adapter: LoggerAdapter = console,
   ) {}
 
-  private invoke (method: string, message: any[]) {
+  private invoke(method: string, message: any[]) {
     let output: Array<any> = []
     if (this.formatter) {
       const params: [string, Level, ...any[]] = [this.name, this.level, ...message]
@@ -37,47 +37,47 @@ export class ContextLogger {
     fns.forEach((fn) => fn(...message))
   }
 
-  info (...message: any[]) {
+  info(...message: any[]) {
     if (Level.info >= this.level) {
       this.invoke('info', message)
     }
   }
 
-  warn (...message: any[]) {
+  warn(...message: any[]) {
     if (Level.warning >= this.level) {
       this.invoke('warn', message)
     }
   }
 
-  error (...message: any[]) {
+  error(...message: any[]) {
     if (Level.error >= this.level) {
       this.invoke('error', message)
     }
   }
 
-  debug (...message: any[]) {
+  debug(...message: any[]) {
     if (Level.debug >= this.level) {
       this.invoke('debug', message)
     }
   }
 
-  setLevel (level: Level) {
+  setLevel(level: Level) {
     this.level = level
   }
 
-  replaceAdapter (adapter: LoggerAdapter) {
+  replaceAdapter(adapter: LoggerAdapter) {
     if (adapter !== this.adapter) {
       this.adapter = adapter
     }
   }
 
-  replaceFormatter (formatter: Formatter) {
+  replaceFormatter(formatter: Formatter) {
     if (formatter !== this.formatter) {
       this.formatter = formatter
     }
   }
 
-  effect (method: keyof LoggerAdapter, callback: Function) {
+  effect(method: keyof LoggerAdapter, callback: Function) {
     if (this.effects.has(method)) {
       const fns = this.effects.get(method)!
       if (fns.every((fn) => fn !== callback)) {
@@ -88,7 +88,7 @@ export class ContextLogger {
     }
   }
 
-  clearEffects () {
+  clearEffects() {
     this.effects.clear()
   }
 }
@@ -102,7 +102,7 @@ export class Logger {
     return [`${prefix} ${current.toLocaleString()}: \r\n`, message]
   })
 
-  static get (name: string, formatter?: Formatter, level?: Level, adapter: LoggerAdapter = console) {
+  static get(name: string, formatter?: Formatter, level?: Level, adapter: LoggerAdapter = console) {
     const logger = Logger.contextMap.get(name)
 
     if (!logger) {
@@ -118,23 +118,23 @@ export class Logger {
     return logger
   }
 
-  static setLevel (level: Level) {
+  static setLevel(level: Level) {
     Logger.outputLogger.setLevel(level)
   }
 
-  static warn (...message: any[]) {
+  static warn(...message: any[]) {
     Logger.outputLogger.warn(...message)
   }
 
-  static info (...message: any[]) {
+  static info(...message: any[]) {
     Logger.outputLogger.info(...message)
   }
 
-  static debug (...message: any[]) {
+  static debug(...message: any[]) {
     Logger.outputLogger.debug(...message)
   }
 
-  static error (...message: any[]) {
+  static error(...message: any[]) {
     Logger.outputLogger.error(...message)
   }
 }

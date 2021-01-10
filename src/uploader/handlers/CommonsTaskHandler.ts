@@ -50,7 +50,7 @@ export class CommonsTaskHandler extends TaskHandler {
   private upload$: Nullable<Observable<any>> = null
   private subscription: Nullable<Subscription> = null
 
-  pause (): this {
+  pause(): this {
     this.subscription?.unsubscribe()
     this.subscription = null
     const { task } = this
@@ -66,23 +66,23 @@ export class CommonsTaskHandler extends TaskHandler {
     return this
   }
 
-  resume (): this {
+  resume(): this {
     this.handle().emit(EventType.TaskResume, this.task)
     return this
   }
 
-  retry (): this {
+  retry(): this {
     this.handle().emit(EventType.TaskRetry, this.task)
     return this
   }
 
-  abort (): this {
+  abort(): this {
     this.upload$ = this.subscription = this.subscription?.unsubscribe() as any
     this.emit(EventType.TaskCancel, this.task)
     return this
   }
 
-  handle (): this {
+  handle(): this {
     Logger.info('CommonTaskHandler -> handle -> task', this.task)
 
     if (!this.upload$) {
@@ -122,7 +122,7 @@ export class CommonsTaskHandler extends TaskHandler {
     return this
   }
 
-  private createUploadJob (task: UploadTask): Observable<{ uploadFile: UploadFile; chunkResponses: ChunkResponse[] }> {
+  private createUploadJob(task: UploadTask): Observable<{ uploadFile: UploadFile; chunkResponses: ChunkResponse[] }> {
     return scheduled(task.fileIDList, animationFrameScheduler).pipe(
       concatMap((fileID) => {
         // 根据ID获取文件
@@ -153,7 +153,7 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private uploadFile (uploadFile: UploadFile): Observable<{ uploadFile: UploadFile; chunkResponses: ChunkResponse[] }> {
+  private uploadFile(uploadFile: UploadFile): Observable<{ uploadFile: UploadFile; chunkResponses: ChunkResponse[] }> {
     const { task, uploaderOptions } = this
     return of(uploadFile).pipe(
       switchMap((uploadFile: UploadFile) => {
@@ -244,7 +244,7 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private uploadChunks (uploadFile: UploadFile, concurrency: number): Observable<ChunkResponse[]> {
+  private uploadChunks(uploadFile: UploadFile, concurrency: number): Observable<ChunkResponse[]> {
     const chunkList: FileChunk[] = uploadFile.chunkList || []
     const baseParams: BaseParams = {
       fileID: uploadFile.id,
@@ -296,7 +296,7 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private postChunk (params: UploadFormData, upFile: UploadFile, chunk: FileChunk): Observable<AjaxResponse> {
+  private postChunk(params: UploadFormData, upFile: UploadFile, chunk: FileChunk): Observable<AjaxResponse> {
     // 获取http请求相关配置
     const requestOptions$: Observable<RequestOpts> = forkJoin([
       this.getServerURL(upFile, chunk),
@@ -332,7 +332,7 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private sendRequest (
+  private sendRequest(
     upfile: UploadFile,
     chunk: FileChunk,
     requestOpts: RequestOpts,
@@ -358,7 +358,7 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private generateFileChunks (chunkSize: number, file: UploadFile): Observable<FileChunk[]> {
+  private generateFileChunks(chunkSize: number, file: UploadFile): Observable<FileChunk[]> {
     return new Observable((ob: Subscriber<FileChunk[]>) => {
       try {
         let start = 0
@@ -378,7 +378,7 @@ export class CommonsTaskHandler extends TaskHandler {
     })
   }
 
-  private getRequestBody (
+  private getRequestBody(
     uploadFile: UploadFile,
     uploadParams: UploadFormData,
     chunk: FileChunk,
@@ -414,7 +414,7 @@ export class CommonsTaskHandler extends TaskHandler {
     })
   }
 
-  private prepareRequestParamsForChunk (
+  private prepareRequestParamsForChunk(
     uploadFile: UploadFile,
     chunk: FileChunk,
     uploadParams: UploadFormData,
@@ -424,7 +424,7 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private handleProgress (): Observable<any> {
+  private handleProgress(): Observable<any> {
     const reduceFn = (res: number = 0, cur: { uploaded: number }) => (res += cur.uploaded || 0)
     return this.progressSubject.pipe(
       map(({ chunk, file, event }) => {
@@ -473,7 +473,7 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private putToTaskFileList (uploadFile: UploadFile): UploadFile {
+  private putToTaskFileList(uploadFile: UploadFile): UploadFile {
     if (uploadFile) {
       this.task.fileList = this.task.fileList || []
       const index: number = this.task.fileList.findIndex((f) => f.id === uploadFile.id)
@@ -482,21 +482,21 @@ export class CommonsTaskHandler extends TaskHandler {
     return uploadFile
   }
 
-  private changeUploadFileStatus (uploadFile: UploadFile, status: StatusCode): void {
+  private changeUploadFileStatus(uploadFile: UploadFile, status: StatusCode): void {
     uploadFile.status = status
   }
 
-  private changeFileChunkStatus (chunk: FileChunk, status: StatusCode): void {
+  private changeFileChunkStatus(chunk: FileChunk, status: StatusCode): void {
     chunk.status = status
   }
 
-  private changeUplotaTaskStatus (task: UploadTask, status: StatusCode): void {
+  private changeUplotaTaskStatus(task: UploadTask, status: StatusCode): void {
     task.status = status
   }
 }
 
 class ProgressSubscriber extends Subscriber<ProgressEvent> {
-  constructor (
+  constructor(
     private subject: Subject<ProgressPayload>,
     private task: UploadTask,
     private file: UploadFile,
@@ -504,7 +504,7 @@ class ProgressSubscriber extends Subscriber<ProgressEvent> {
   ) {
     super()
   }
-  next (data: ProgressEvent) {
+  next(data: ProgressEvent) {
     this.subject.next({
       task: this.task,
       file: this.file,
@@ -512,7 +512,7 @@ class ProgressSubscriber extends Subscriber<ProgressEvent> {
       event: data,
     })
   }
-  error (e: Error) {
+  error(e: Error) {
     Logger.error('progress error', e)
   }
 }

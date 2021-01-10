@@ -1,12 +1,13 @@
 import { Observable, fromEvent, from } from 'rxjs'
 import { tap, mergeMap } from 'rxjs/operators'
 import { FileDraggerOptions } from '../../interface'
+import { Logger } from '../../shared'
 
 export class FileDragger {
   $el: HTMLElement
   file$: Observable<File[]>
 
-  constructor (options: FileDraggerOptions) {
+  constructor(options: FileDraggerOptions) {
     const { $el, onDragover, onDragenter, onDragleave, onDrop } = options
     if (!$el) {
       throw new Error()
@@ -30,69 +31,72 @@ export class FileDragger {
     )
   }
 
-  private parseDataTransfer (e: DragEvent): Promise<File[]> {
+  private parseDataTransfer(e: DragEvent): Promise<File[]> {
     const dataTransfer = e.dataTransfer
     if (!dataTransfer) {
       return Promise.resolve([])
     }
-    if (
-      dataTransfer.items &&
-      dataTransfer.items.length &&
-      typeof dataTransfer.items[0].webkitGetAsEntry === 'function'
-    ) {
-      return this.parseWebkitDataTransfer(dataTransfer, e)
+    Logger.info('parseDataTransfer', dataTransfer.files.length, dataTransfer.items.length)
+    if (dataTransfer.items?.length && typeof dataTransfer.items[0].webkitGetAsEntry === 'function') {
+      return webkitGetAsEntryApi(dataTransfer)
     } else {
       return Promise.resolve(Array.from(dataTransfer.files))
     }
   }
+}
 
-  private parseWebkitDataTransfer (dataTransfer: DataTransfer, _e: DragEvent): Promise<File[]> {
-    const files: File[] = []
+async function webkitGetAsEntryApi(dataTransfer: DataTransfer): Promise<any[]> {
+  const files: any[] = []
+  const rootPromises: Promise<any>[] = []
 
-    const read = (reader: any): Promise<any> => {
-      return new Promise((resolve, reject) => {
-        reader.readEntries((entries: any) => {
-          const promises: Promise<any>[] = entries.map((entry: any) => {
-            if (entry.isFile) {
-              return new Promise((resolve, reject) => {
-                let fullPath = entry.fullPath
-                entry.file((file: File) => {
-                  file && files.push(Object.assign(file, { relativePath: String(fullPath).replace(/^\//, '') }))
-                  resolve(file)
-                }, reject)
-              })
-            } else {
-              return read(entry.createReader())
-            }
-          })
-          Promise.all(promises)
-            .then(resolve)
-            .catch(reject)
-        }, reject)
-      })
-    }
-
-    const promises: Promise<unknown>[] = []
-    for (let i = 0; i < dataTransfer.items.length; i++) {
-      let item = dataTransfer.items[i]
-      let entry = item.webkitGetAsEntry()
-      if (!entry) {
-        continue
-      }
+  const createPromiseToAddFileOrParseDirectory = (entry: any) => {
+    return new Promise((resolve) => {
       if (entry.isFile) {
-        let file = item.getAsFile()
-        file && files.push(Object.assign(file, { relativePath: String(entry.fullPath).replace(/^\//, '') }))
-      } else {
-        promises.push(read(entry.createReader()))
+        entry.file(
+          (file: any) => {
+            file.relativePath = getRelativePath(entry)
+            files.push(file)
+            resolve(null)
+          },
+          () => resolve(null),
+        )
+      } else if (entry.isDirectory) {
+        getFilesAndDirectoriesFromDirectory(entry.createReader(), [], (entries: any[]) => {
+          const promises = entries.map((entry) => createPromiseToAddFileOrParseDirectory(entry))
+          Promise.all(promises).then(() => resolve(null))
+        })
       }
-    }
-
-    return new Promise((resolve, reject) => {
-      Promise.all(promises)
-        .then(() => resolve(files))
-        .catch(reject)
     })
   }
+
+  try {
+    Array.from(dataTransfer.items).forEach((item: DataTransferItem) => {
+      const entry = item.webkitGetAsEntry()
+      entry && rootPromises.push(createPromiseToAddFileOrParseDirectory(entry))
+    })
+    await Promise.all(rootPromises)
+  } catch (error) {
+    Logger.error(error)
+  }
+  return files
+}
+
+function getRelativePath(fileEntry: any) {
+  return String(fileEntry.fullPath || fileEntry.name).replace(/^\//, '')
+}
+
+function getFilesAndDirectoriesFromDirectory(directoryReader: any, oldEntries: any[], callback: Function) {
+  directoryReader.readEntries(
+    (entries: any) => {
+      const newEntries = [...oldEntries, ...entries]
+      if (entries.length) {
+        setTimeout(() => getFilesAndDirectoriesFromDirectory(directoryReader, newEntries, callback))
+      } else {
+        callback(newEntries)
+      }
+    },
+    () => callback(oldEntries),
+  )
 }
 
 type DragEventHandler = (event: DragEvent) => void

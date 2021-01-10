@@ -5,15 +5,15 @@ import { EventType, FileChunk, ID, MaybePromise, TPromise, UploadFile, UploadTas
 import { Logger } from '../shared'
 
 export default class Base extends EventEmitter {
-  protected constructor () {
+  protected constructor() {
     super()
   }
 
-  protected toObserverble<T> (input: TPromise<T>): Observable<T> {
+  protected toObserverble<T>(input: TPromise<T>): Observable<T> {
     return input && input instanceof Promise ? from(input) : of(input)
   }
 
-  protected createObserverble<T> (input: T | ((...args: any[]) => TPromise<T>), ...args: any[]): Observable<T> {
+  protected createObserverble<T>(input: T | ((...args: any[]) => TPromise<T>), ...args: any[]): Observable<T> {
     return new Observable((ob: Subscriber<T>) => {
       let sub: Subscription
       try {
@@ -26,13 +26,13 @@ export default class Base extends EventEmitter {
     })
   }
 
-  protected presist (task: UploadTask, file: UploadFile, chunk: FileChunk) {
+  protected presist(task: UploadTask, file: UploadFile, chunk: FileChunk) {
     task && this.presistTaskOnly(task)
     file && this.presistFileOnly(file)
     chunk && this.presistChunkOnly(chunk)
   }
 
-  protected presistChunkOnly (...chunks: FileChunk[]): Promise<void> {
+  protected presistChunkOnly(...chunks: FileChunk[]): Promise<void> {
     const items = chunks.map((chunk: FileChunk) => ({
       key: String(chunk.id),
       value: Object.assign({}, chunk, { data: null }),
@@ -40,7 +40,7 @@ export default class Base extends EventEmitter {
     return Storage.FileChunk.setItems(items)
   }
 
-  protected presistFileOnly (...files: UploadFile[]): Promise<void> {
+  protected presistFileOnly(...files: UploadFile[]): Promise<void> {
     const items = files.map((file: UploadFile) => ({
       key: String(file.id),
       value: Object.assign({}, file, { raw: null, chunkList: null }),
@@ -48,7 +48,7 @@ export default class Base extends EventEmitter {
     return Storage.UploadFile.setItems(items)
   }
 
-  protected presistTaskOnly (...tasks: UploadTask[]): Promise<void> {
+  protected presistTaskOnly(...tasks: UploadTask[]): Promise<void> {
     const items = tasks.map((task: UploadTask) => ({
       key: String(task.id),
       value: Object.assign({}, task, { fileList: null }),
@@ -56,7 +56,7 @@ export default class Base extends EventEmitter {
     return Storage.UploadTask.setItems(items)
   }
 
-  protected presistUploadFile (file: UploadFile | undefined): Promise<any> {
+  protected presistUploadFile(file: UploadFile | undefined): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!file) {
         return reject('no file!')
@@ -67,19 +67,17 @@ export default class Base extends EventEmitter {
         .then(() => {
           Logger.warn(`save file ${file.name}`)
           const upfile = file.raw ? Object.assign({}, file, { raw: null }) : file
-          Storage.UploadFile.setItem(String(file.id), upfile)
-            .then(resolve)
-            .catch(reject)
+          Storage.UploadFile.setItem(String(file.id), upfile).then(resolve).catch(reject)
         })
         .catch(reject)
     })
   }
 
-  protected presistBlob (key: string, blob: Blob): Promise<Blob> {
+  protected presistBlob(key: string, blob: Blob): Promise<Blob> {
     return Storage.BinaryLike.setItem(key, blob)
   }
 
-  protected presistTask (tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
+  protected presistTask(tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
     Logger.info('Uploader -> presistTask -> tasks', tasks)
     const tryTakeUntil = () => takeUntil(nofication$ || NEVER)
     const job$ = tasks.map((task) => {
@@ -97,7 +95,7 @@ export default class Base extends EventEmitter {
     return forkJoin(job$).pipe(mapTo(tasks))
   }
 
-  protected removeChunkFromStroage (...chunks: FileChunk[] | ID[]) {
+  protected removeChunkFromStroage(...chunks: FileChunk[] | ID[]) {
     if (chunks && chunks.length) {
       if (typeof chunks[0] === 'object') {
         Storage.FileChunk.removeItems((<FileChunk[]>chunks).map((i) => String(i.id)))
@@ -107,7 +105,7 @@ export default class Base extends EventEmitter {
     }
   }
 
-  protected removeFileFromStroage (...files: UploadFile[] | ID[]) {
+  protected removeFileFromStroage(...files: UploadFile[] | ID[]) {
     if (files && files.length) {
       files.forEach((file: UploadFile | ID) => {
         let fileID: ID = typeof file === 'object' ? file.id : file
@@ -126,7 +124,7 @@ export default class Base extends EventEmitter {
     }
   }
 
-  protected removeTaskFromStroage (...tasks: UploadTask[]) {
+  protected removeTaskFromStroage(...tasks: UploadTask[]) {
     if (tasks && tasks.length) {
       tasks.forEach((task) =>
         Storage.UploadTask.removeItem(String(task.id)).then(() => {
@@ -136,11 +134,11 @@ export default class Base extends EventEmitter {
     }
   }
 
-  protected clearStorage (): Promise<unknown> {
+  protected clearStorage(): Promise<unknown> {
     return Promise.all([Storage.BinaryLike.clear(), Storage.UploadFile.clear(), Storage.UploadTask.clear()])
   }
 
-  protected hookWrap<T extends MaybePromise> (fn: T): Promise<any> {
+  protected hookWrap<T extends MaybePromise>(fn: T): Promise<any> {
     return (fn as any) || Promise.resolve()
   }
 }

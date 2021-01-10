@@ -8,9 +8,9 @@ type MyStorage = LocalForage & {
   list: () => Promise<unknown[]>
 }
 
-function extendList (instance: LocalForage): MyStorage {
+function extendList(instance: LocalForage): MyStorage {
   return Object.assign(instance, {
-    list (): Promise<unknown[]> {
+    list(): Promise<unknown[]> {
       return new Promise((resolve, reject) => {
         const list: unknown[] = []
         instance
@@ -24,7 +24,7 @@ function extendList (instance: LocalForage): MyStorage {
   })
 }
 
-function createInstance (opts: LocalForageOptions): MyStorage {
+function createInstance(opts: LocalForageOptions): MyStorage {
   const instance = localforage.createInstance(opts)
   extendRemoveitems(instance)
   extendSetitems(instance)
@@ -43,7 +43,7 @@ export class Storage {
 
   private static readonly Public: MyStorage = createInstance({ name: INSTANCE_NAME, storeName: 'Public' })
 
-  private constructor () {}
+  private constructor() {}
 
   static get = Storage.Public.getItem.bind(Storage.Public)
   static set = Storage.Public.setItem.bind(Storage.Public)

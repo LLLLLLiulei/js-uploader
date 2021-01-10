@@ -18,7 +18,7 @@ class MD5Worker extends Worker {
   id: string | number = MD5Worker.maxWorkerID++
   isBusy: boolean = false
 
-  execute (task?: Task): void {
+  execute(task?: Task): void {
     task = task || taskQueue.pop()
     if (task) {
       this.isBusy = true
@@ -42,8 +42,8 @@ interface WorkResult {
   abort: () => void
 }
 class MD5WorkerPool {
-  public execute (data: Blob | ArrayBuffer): WorkResult
-  public execute (data: Blob | ArrayBuffer, callback?: (error: Error | null, md5: string) => void): WorkResult {
+  public execute(data: Blob | ArrayBuffer): WorkResult
+  public execute(data: Blob | ArrayBuffer, callback?: (error: Error | null, md5: string) => void): WorkResult {
     let logid = `computemd5->${data instanceof Blob ? data.size : data.byteLength}`
     console.time(logid)
     let promise: Promise<string> | void = !callback
@@ -78,7 +78,7 @@ class MD5WorkerPool {
     }
   }
 
-  private static getWorker (): Nullable<MD5Worker> {
+  private static getWorker(): Nullable<MD5Worker> {
     let worker = workers.find((wk) => !wk.isBusy)
     if (!worker && workers.length < maxWorkerNum) {
       workers.push((worker = new MD5Worker(workerURL)))
