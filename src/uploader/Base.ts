@@ -138,7 +138,7 @@ export default class Base extends EventEmitter {
     return Promise.all([Storage.BinaryLike.clear(), Storage.UploadFile.clear(), Storage.UploadTask.clear()])
   }
 
-  protected hookWrap<T extends MaybePromise>(fn: T): Promise<any> {
-    return (fn as any) || Promise.resolve()
+  protected hookWrap<T extends MaybePromise, V = any>(fn: T, promiseValue?: V): Promise<any> {
+    return (fn as any) || Promise.resolve(promiseValue)
   }
 }

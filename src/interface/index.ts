@@ -65,13 +65,17 @@ export enum StatusCode {
   Complete = 'complete',
 }
 
+export enum OSSType {
+  Qiniu = 'qiniu',
+}
+
 export type ID = string | number
 
 export type Protocol = 'http:' | 'https:'
 
 export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
-export type OSS = false | 'qiniu' | 'aws-s3'
+export type OSS = false | OSSType
 
 export type Obj = { [key: string]: any }
 
@@ -170,6 +174,8 @@ export interface UploadTask {
   fileList: UploadFile[]
   // 文件总大小
   fileSize: number
+
+  uploaded: number
   // oss类型
   oss: OSS
   // 进度
@@ -324,6 +330,9 @@ export interface UploaderOptions {
     chunk: FileChunk,
     response: AjaxResponse,
   ) => MaybePromise
+
+  //  文件上传完成前
+  beforeFileUploadComplete?: (task: UploadTask, file: UploadFile) => MaybePromise
 }
 
 export type RequestOpts = {

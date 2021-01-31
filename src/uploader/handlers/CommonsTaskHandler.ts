@@ -232,12 +232,18 @@ export class CommonsTaskHandler extends TaskHandler {
           return of({ uploadFile, chunkResponses: [] })
         }
       }),
+      concatMap((res: { uploadFile: UploadFile; chunkResponses: ChunkResponse[] }) => {
+        // 文件上传完成前hook
+        const beforeComplete = this.hookWrap(uploaderOptions.beforeFileUploadComplete?.(task, uploadFile))
+        return from(beforeComplete).pipe(mapTo(res))
+      }),
       tap(({ uploadFile, chunkResponses }) => {
         Logger.info('🚀 ~  upload complete', uploadFile, chunkResponses)
         // 文件上传完成事件
-        uploadFile.response = chunkResponses?.length
-          ? chunkResponses[chunkResponses.length - 1]?.response?.response
-          : uploadFile.response
+        uploadFile.response =
+          !uploadFile.response && chunkResponses?.length
+            ? chunkResponses[chunkResponses.length - 1]?.response?.response
+            : uploadFile.response
         this.changeUploadFileStatus(uploadFile, StatusCode.Complete)
         this.emit(EventType.FileComplete, this.task, uploadFile, chunkResponses)
       }),
@@ -444,13 +450,14 @@ export class CommonsTaskHandler extends TaskHandler {
         let taskLastProgress = this.task.progress
 
         let taskProgress = this.task.progress
+        let taskUploaded = this.task.fileList.reduce(reduceFn, 0) || 0
         if (this.task.fileIDList?.length === 1) {
           taskProgress = Math.max(file.progress, this.task.progress || 0)
         } else {
-          let taskUploaded = this.task.fileList.reduce(reduceFn, 0) || 0
           taskProgress = Math.round((taskUploaded / this.task.fileSize) * 100)
           taskProgress = Math.max(taskProgress, this.task.progress || 0)
         }
+        this.task.uploaded = Math.min(taskUploaded, this.task.fileSize)
         this.task.progress = taskProgress
 
         if (this.isResumable() && this.task.progress > taskLastProgress) {

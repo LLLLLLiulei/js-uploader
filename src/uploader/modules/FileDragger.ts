@@ -1,5 +1,6 @@
 import { Observable, fromEvent, from } from 'rxjs'
 import { tap, mergeMap } from 'rxjs/operators'
+import { scheduleWork } from '../../utils'
 import { FileDraggerOptions } from '../../interface'
 import { Logger } from '../../shared'
 
@@ -90,7 +91,7 @@ function getFilesAndDirectoriesFromDirectory(directoryReader: any, oldEntries: a
     (entries: any) => {
       const newEntries = [...oldEntries, ...entries]
       if (entries.length) {
-        setTimeout(() => getFilesAndDirectoriesFromDirectory(directoryReader, newEntries, callback))
+        scheduleWork(() => getFilesAndDirectoriesFromDirectory(directoryReader, newEntries, callback), 500)
       } else {
         callback(newEntries)
       }

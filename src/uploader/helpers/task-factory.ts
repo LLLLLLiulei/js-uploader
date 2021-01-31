@@ -11,6 +11,7 @@ export const taskFactory = (file: UploadFile, singleFileTask?: boolean): UploadT
     fileIDList: [file.id],
     fileSize: file.size,
     fileList: [file],
+    uploaded: 0,
     extraInfo: {},
     oss: false,
     progress: 0,
