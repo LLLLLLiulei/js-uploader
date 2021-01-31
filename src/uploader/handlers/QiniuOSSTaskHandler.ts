@@ -1,5 +1,5 @@
 import { UploadTask, UploaderOptions, FileChunk, UploadFile, Protocol, Obj } from '../../interface'
-import { Observable, forkJoin, from, of } from 'rxjs'
+import { Observable, from, of } from 'rxjs'
 import { ajax, AjaxResponse } from 'rxjs/ajax'
 import { CommonsTaskHandler } from './CommonsTaskHandler'
 import { urlSafeBase64Decode, urlSafeBase64Encode } from '../../shared/base64'
@@ -28,14 +28,15 @@ interface FileExtraInfo {
 export class QiniuOSSTaskHandler extends CommonsTaskHandler {
   private chunkSize: number = 4 * 1024 ** 2
   private static HOST_MAP: Map<string, UpHosts> = new Map<string, UpHosts>()
+  private static _overwrite: boolean = false
 
   constructor(task: UploadTask, uploaderOptions: UploaderOptions) {
     super(task, uploaderOptions)
-    this.processUploaderOptions()
+    !QiniuOSSTaskHandler._overwrite && this.processUploaderOptions()
   }
 
   private processUploaderOptions() {
-    Logger.warn('QiniuOSSTaskHandler -> processUploaderOptions -> processUploaderOptions')
+    Logger.warn('QiniuOSSTaskHandler -> processUploaderOptions -> processUploaderOptions', this)
     const { uploaderOptions } = this
     const { ossOptions, beforeFileUploadComplete, beforeFileUploadStart } = uploaderOptions
 
@@ -56,64 +57,80 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
     uploaderOptions.requestBodyProcessFn = (_task: UploadTask, _upfile: UploadFile, _chunk: FileChunk, params: Obj) => {
       return params.file
     }
-    uploaderOptions.beforeFileUploadComplete = (task: UploadTask, file: UploadFile) => {
-      const beforeFileComplete = () => this.hookWrap(beforeFileUploadComplete?.(task, file))
-      const mergeFileRequest = (): Observable<AjaxResponse> => {
-        const extraInfo: FileExtraInfo = this.getFileExtraInfo(file)
-        const url = this.getMakeFileUrl(extraInfo.host || '', file.size, file.extraInfo?.key)
-        const headers = {
-          'Content-Type': 'text/plain',
-          Authorization: `UpToken ${extraInfo.uptoken || ''}`,
-        }
-        const body = file.chunkList?.map((ck: FileChunk) => ck.response?.ctx).join()
-        return ajax.post(url, body, headers).pipe(
-          tap((res: AjaxResponse) => {
-            file.response = res.response
-          }),
-        )
-      }
-      return of(null).pipe(concatMap(mergeFileRequest), concatMap(beforeFileComplete)).toPromise()
+
+    const overwriteFns = this.getOverwriteFns()
+    if (beforeFileUploadComplete?.name !== overwriteFns.overwriteBeforeFileUploadComplete.name) {
+      uploaderOptions.beforeFileUploadComplete = overwriteFns.overwriteBeforeFileUploadComplete
     }
-    uploaderOptions.beforeFileUploadStart = (task: UploadTask, upFile: UploadFile) => {
-      const extraInfo: FileExtraInfo = this.getFileExtraInfo(upFile)
+    if (beforeFileUploadStart?.name !== overwriteFns.overwriteBeforeFileUploadStart.name) {
+      uploaderOptions.beforeFileUploadStart = overwriteFns.overwriteBeforeFileUploadStart
+    }
+    QiniuOSSTaskHandler._overwrite = true
+  }
 
-      const beforeUpload = () => {
-        return this.hookWrap(beforeFileUploadStart?.(task, upFile))
-      }
+  private getOverwriteFns() {
+    const { uploaderOptions } = this
+    const { beforeFileUploadComplete, beforeFileUploadStart } = uploaderOptions
+    return {
+      overwriteBeforeFileUploadStart: (task: UploadTask, upFile: UploadFile) => {
+        const extraInfo: FileExtraInfo = this.getFileExtraInfo(upFile)
 
-      const getUpToken = () => {
-        const uptoken = uploaderOptions.ossOptions?.uptokenGenerator(upFile, task) || Promise.resolve('')
-        return this.toObserverble(uptoken).pipe(
-          tap((token) => {
-            extraInfo.uptoken = token
-          }),
-        )
-      }
+        const beforeUpload = () => {
+          return beforeFileUploadStart?.(task, upFile) || Promise.resolve()
+        }
 
-      const getObjectKey = () => {
-        const objectKey = uploaderOptions.ossOptions?.keyGenerator(upFile, task) || Promise.resolve('')
-        return this.toObserverble(objectKey).pipe(
-          tap((key) => {
-            extraInfo.key = key
-          }),
-        )
-      }
+        const getUpToken = () => {
+          const uptoken = uploaderOptions.ossOptions?.uptokenGenerator(upFile, task) || Promise.resolve('')
+          return this.toObserverble(uptoken).pipe(
+            tap((token) => {
+              extraInfo.uptoken = token
+            }),
+          )
+        }
 
-      const getUploadUrlFn = (token: string) =>
-        from(this.getUploadUrl(token)).pipe(
-          tap((host) => {
-            extraInfo.host = host
-          }),
-        )
+        const getObjectKey = () => {
+          const objectKey = uploaderOptions.ossOptions?.keyGenerator(upFile, task) || Promise.resolve('')
+          return this.toObserverble(objectKey).pipe(
+            tap((key) => {
+              extraInfo.key = key
+            }),
+          )
+        }
 
-      return of(null)
-        .pipe(
-          concatMap(getUpToken),
-          concatMap((token) => getUploadUrlFn(token)),
-          concatMap(getObjectKey),
-          concatMap(beforeUpload),
-        )
-        .toPromise()
+        const getUploadUrlFn = (token: string) =>
+          from(this.getUploadUrl(token)).pipe(
+            tap((host) => {
+              extraInfo.host = host
+            }),
+          )
+
+        return of(null)
+          .pipe(
+            concatMap(getUpToken),
+            concatMap((token) => getUploadUrlFn(token)),
+            concatMap(getObjectKey),
+            concatMap(beforeUpload),
+          )
+          .toPromise()
+      },
+      overwriteBeforeFileUploadComplete: (task: UploadTask, file: UploadFile) => {
+        const beforeFileComplete = () => beforeFileUploadComplete?.(task, file) || Promise.resolve()
+        const mergeFileRequest = (): Observable<AjaxResponse> => {
+          const extraInfo: FileExtraInfo = this.getFileExtraInfo(file)
+          const url = this.getMakeFileUrl(extraInfo.host || '', file.size, file.extraInfo?.key)
+          const headers = {
+            'Content-Type': 'text/plain',
+            Authorization: `UpToken ${extraInfo.uptoken || ''}`,
+          }
+          const body = file.chunkList?.map((ck: FileChunk) => ck.response?.ctx).join()
+          return ajax.post(url, body, headers).pipe(
+            tap((res: AjaxResponse) => {
+              file.response = res.response
+            }),
+          )
+        }
+        return of(null).pipe(concatMap(mergeFileRequest), concatMap(beforeFileComplete)).toPromise()
+      },
     }
   }
 
