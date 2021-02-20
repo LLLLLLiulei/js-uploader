@@ -44,6 +44,7 @@
         "@types/jquery": "^3.5.2",
         "@types/node": "^14.0.27",
         "@types/shelljs": "^0.8.8",
+        "@types/xml2js": "^0.4.8",
         "aws-sdk": "^2.814.0",
         "babel-loader": "^8.1.0",
         "extract-text-webpack-plugin": "^4.0.0-beta.0",
@@ -70,11 +71,14 @@
         "webpack-dev-server": "^3.11.0"
     },
     "dependencies": {
+        "@aws-crypto/sha256-js": "^1.1.0",
+        "@aws-sdk/signature-v4": "^3.5.0",
         "localforage": "^1.9.0",
         "localforage-getitems": "^1.4.2",
         "localforage-removeitems": "^1.4.0",
         "localforage-setitems": "^1.4.0",
-        "localforage-startswith": "^1.4.0"
+        "localforage-startswith": "^1.4.0",
+        "xml2js": "^0.4.23"
     },
     "peerDependencies": {
         "localforage": "^1.9.0",
@@ -83,7 +87,6 @@
         "localforage-setitems": "^1.4.0",
         "localforage-startswith": "^1.4.0",
         "rxjs": "^6.5.3",
-        "aws-sdk": "^2.814.0",
         "tslib": "^1.10.0"
     },
     "prettier": {

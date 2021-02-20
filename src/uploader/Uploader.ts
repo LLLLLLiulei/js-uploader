@@ -530,7 +530,7 @@ export class Uploader extends Base {
               }
             }
             if (newTask) {
-              newTask.oss = ossOptions?.enable ? ossOptions?.type : newTask.oss
+              newTask.oss = ossOptions?.enable ? ossOptions?.provider : newTask.oss
               newTask.type = singleFileTask ? 'file' : newTask.type
               newTasks.push(newTask)
             }

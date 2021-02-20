@@ -1,4 +1,4 @@
-import { UploadTask, UploaderOptions, FileChunk, UploadFile, Protocol, Obj } from '../../interface'
+import { UploadTask, UploaderOptions, FileChunk, UploadFile, Protocol, Obj, OSSProvider } from '../../interface'
 import { Observable, from, of } from 'rxjs'
 import { ajax, AjaxResponse } from 'rxjs/ajax'
 import { CommonsTaskHandler } from './CommonsTaskHandler'
@@ -40,7 +40,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
     const { uploaderOptions } = this
     const { ossOptions, beforeFileUploadComplete, beforeFileUploadStart } = uploaderOptions
 
-    if (!ossOptions?.enable || !ossOptions?.type) {
+    if (!ossOptions?.enable || ossOptions?.provider !== OSSProvider.Qiniu) {
       throw new Error('ossOptions配置错误！')
     }
 
@@ -80,7 +80,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
         }
 
         const getUpToken = () => {
-          const uptoken = uploaderOptions.ossOptions?.uptokenGenerator(upFile, task) || Promise.resolve('')
+          const uptoken = uploaderOptions.ossOptions?.uptokenGenerator?.(upFile, task) || Promise.resolve('')
           return this.toObserverble(uptoken).pipe(
             tap((token) => {
               extraInfo.uptoken = token
@@ -89,7 +89,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
         }
 
         const getObjectKey = () => {
-          const objectKey = uploaderOptions.ossOptions?.keyGenerator(upFile, task) || Promise.resolve('')
+          const objectKey = uploaderOptions.ossOptions?.keyGenerator?.(upFile, task) || Promise.resolve('')
           return this.toObserverble(objectKey).pipe(
             tap((key) => {
               extraInfo.key = key

@@ -65,8 +65,9 @@ export enum StatusCode {
   Complete = 'complete',
 }
 
-export enum OSSType {
+export enum OSSProvider {
   Qiniu = 'qiniu',
+  S3 = 's3',
 }
 
 export type ID = string | number
@@ -75,7 +76,7 @@ export type Protocol = 'http:' | 'https:'
 
 export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
-export type OSS = false | OSSType
+export type OSS = OSSProvider
 
 export type Obj = { [key: string]: any }
 
@@ -177,7 +178,7 @@ export interface UploadTask {
 
   uploaded: number
   // oss类型
-  oss: OSS
+  oss?: Nullable<OSS>
   // 进度
   progress: number
   // 状态
@@ -223,9 +224,10 @@ export type DragEventHandler = (event: DragEvent) => void
 export type MaybePromise = Promise<any> | void
 export interface OssOptions {
   enable: boolean
-  type: OSS
-  keyGenerator: (file: UploadFile, task: UploadTask) => TPromise<string>
-  uptokenGenerator: (file: UploadFile, task: UploadTask) => TPromise<string>
+  provider?: Nullable<OSSProvider>
+  s3Config?: S3Config | (() => TPromise<S3Config>)
+  keyGenerator?: (file: UploadFile, task: UploadTask) => TPromise<string>
+  uptokenGenerator?: (file: UploadFile, task: UploadTask) => TPromise<string> // 仅qiniu使用
 }
 
 export type TPromise<T> = T | Promise<T>
@@ -235,6 +237,8 @@ export interface RequestOptions {
   url: string | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => TPromise<string>)
   headers?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => TPromise<Obj>)
   body?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => TPromise<Obj>)
+  method?: RequestMethod
+  responseType?: 'json' | 'text'
   timeout?: number
   withCredentials?: boolean
 }
@@ -339,6 +343,8 @@ export type RequestOpts = {
   url: string
   headers: Obj
   body: UploadFormData
+  method?: RequestMethod
+  responseType?: 'json' | 'text'
 }
 
 export interface ChunkResponse {
@@ -382,4 +388,55 @@ export interface BaseParams {
 export interface UploadFormData extends BaseParams {
   file?: Blob
   [key: string]: any
+}
+
+export interface Credentials {
+  readonly accessKeyId: string
+  readonly secretAccessKey: string
+  readonly sessionToken?: string
+  readonly expiration?: Date
+}
+
+export interface HeaderBag {
+  [key: string]: string
+}
+
+export interface HttpMessage {
+  headers: HeaderBag
+  body?: any
+}
+
+export interface HttpRequest extends HttpMessage, Endpoint {
+  method: string
+}
+
+export interface QueryParameterBag {
+  [key: string]: string | Array<string> | null
+}
+
+export interface Endpoint {
+  protocol: string
+  hostname: string
+  port?: number
+  path?: string
+  query?: QueryParameterBag
+}
+
+export interface RequestToSign {
+  url: string
+  method: string
+  query?: QueryParameterBag
+  headers?: HeaderBag
+  body?: any
+}
+
+export interface CompletedPart {
+  ETag: string
+  PartNumber: number
+}
+
+export interface S3Config {
+  region: string
+  credentials: Credentials
+  endpoint: Endpoint
 }

@@ -194,8 +194,13 @@ export class CommonsTaskHandler extends TaskHandler {
           return of(uploadFile)
         }
         // 计算分片，仅计算切片索引不切割文件
+        const maxChunkCount = 10000
         const chunked: boolean = !!uploaderOptions.chunked
-        const chunkSize: number = chunked ? uploaderOptions.chunkSize || 1024 ** 2 * 4 : Number.MAX_SAFE_INTEGER
+        let chunkSize: number = chunked ? uploaderOptions.chunkSize || 1024 ** 2 * 4 : Number.MAX_SAFE_INTEGER
+        if (Math.ceil(uploadFile.size / chunkSize) > maxChunkCount) {
+          chunkSize = Math.ceil(chunkSize / maxChunkCount)
+        }
+
         return this.generateFileChunks(chunkSize, uploadFile).pipe(
           concatMap((chunkList: FileChunk[]) => {
             const chunkIDList: ID[] = chunkList.map((ck) => ck.id)
@@ -304,11 +309,12 @@ export class CommonsTaskHandler extends TaskHandler {
 
   private postChunk(params: UploadFormData, upFile: UploadFile, chunk: FileChunk): Observable<AjaxResponse> {
     // 获取http请求相关配置
+    const { method, responseType } = this.uploaderOptions.requestOptions
     const requestOptions$: Observable<RequestOpts> = forkJoin([
       this.getServerURL(upFile, chunk),
       this.getRequestHeaders(upFile, chunk),
       this.getRequestBody(upFile, params, chunk),
-    ]).pipe(map(([url = 0, headers = 1, body = 2]) => ({ url, headers, body } as RequestOpts)))
+    ]).pipe(map(([url = 0, headers = 1, body = 2]) => ({ url, headers, body, method, responseType } as RequestOpts)))
 
     return requestOptions$.pipe(
       concatMap((res: RequestOpts) => {
@@ -345,7 +351,7 @@ export class CommonsTaskHandler extends TaskHandler {
     progressSubscriber?: ProgressSubscriber,
   ): Observable<AjaxResponse> {
     const { requestOptions, requestBodyProcessFn } = this.uploaderOptions
-    const { url, headers, body } = requestOpts
+    const { url, headers, body, method, responseType } = requestOpts
     const processRequestBody$ = this.toObserverble(
       requestBodyProcessFn?.(this.task, upfile, chunk, body) || this.toFormData(body),
     )
@@ -355,7 +361,8 @@ export class CommonsTaskHandler extends TaskHandler {
           url,
           headers,
           body,
-          method: 'POST',
+          method: method || 'POST',
+          responseType,
           progressSubscriber,
           withCredentials: !!requestOptions.withCredentials,
           timeout: requestOptions.timeout || 0,
