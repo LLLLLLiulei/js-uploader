@@ -20,6 +20,7 @@ import {
 import { of, from } from 'rxjs'
 import { tap, map, switchMap, catchError, mapTo, concatMap, filter, mergeMap } from 'rxjs/operators'
 import { ajax } from 'rxjs/ajax'
+import { Logger } from '../../shared'
 
 interface FileExtraInfo {
   bucket?: string
@@ -42,12 +43,17 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
   }
 
   abort(): this {
-    let ob$ = from(this.task.fileList)
+    this.abortTaskFiles()
+    super.abort()
+    return this
+  }
+
+  private abortTaskFiles() {
+    let sub = of(...this.task.fileList)
       .pipe(
-        filter((file) => file.status !== StatusCode.Complete),
         filter((file) => {
           let { key, uploadId } = this.getFileExtraInfo(file)
-          return !!key && !!uploadId
+          return !!key && !!uploadId && file.status !== StatusCode.Complete
         }),
         mergeMap((file) => {
           let { key, uploadId } = this.getFileExtraInfo(file)
@@ -56,17 +62,14 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
       )
       .subscribe({
         complete: () => {
-          ob$.unsubscribe()
-          ob$ = null as any
+          sub.unsubscribe()
+          sub = null as any
         },
       })
-
-    super.abort()
-    return this
   }
 
   private processUploaderOptions() {
-    console.log('🚀 ~ file: AwsS3TaskHandler.ts ~ line 42 ~ AwsS3TaskHandler ~ processUploaderOptions', this)
+    Logger.info('🚀 ~ file: AwsS3TaskHandler.ts ~ line 42 ~ AwsS3TaskHandler ~ processUploaderOptions', this)
     const { uploaderOptions } = this
     const { ossOptions, beforeFileUploadComplete, beforeFileUploadStart, beforeUploadResponseProcess } = uploaderOptions
 
@@ -322,7 +325,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
   }
 
   private async signRequest(requestToSign: RequestToSign, signatureV4?: SignatureV4) {
-    console.log(
+    Logger.info(
       '🚀 ~ file: AwsS3TaskHandler.ts ~ line 324 ~ AwsS3TaskHandler ~ signRequest ~ requestToSign',
       requestToSign,
     )
@@ -340,7 +343,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
       protocol,
       body,
     })
-    console.log('🚀 ~ file: AwsS3TaskHandler.ts ~ line 79 ~ AwsS3TaskHandler ~ signRequest ~ signed', signed)
+    Logger.info('🚀 ~ file: AwsS3TaskHandler.ts ~ line 79 ~ AwsS3TaskHandler ~ signRequest ~ signed', signed)
     delete signed.headers.host
     return signed
   }
