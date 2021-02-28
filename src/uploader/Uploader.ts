@@ -478,7 +478,7 @@ export class Uploader extends Base {
         while (files.length) {
           Logger.info(files.length)
           const filelist: UploadFile[] = []
-          files.splice(0, 20).forEach((file) => {
+          files.splice(0, 50).forEach((file) => {
             let ignored = false
             if (fileFilter instanceof RegExp) {
               ignored = !fileFilter.test(file.name)

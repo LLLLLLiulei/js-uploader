@@ -13,7 +13,7 @@ export const taskFactory = (file: UploadFile, singleFileTask?: boolean): UploadT
     fileList: [file],
     uploaded: 0,
     extraInfo: {},
-    oss: false,
+    oss: null,
     progress: 0,
     status: StatusCode.Pause,
     addTime: new Date(),

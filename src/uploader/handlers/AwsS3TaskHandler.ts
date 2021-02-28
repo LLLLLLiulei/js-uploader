@@ -1,7 +1,7 @@
 import { SignatureV4 } from '@aws-sdk/signature-v4'
 import { SHA256_HEADER, UNSIGNED_PAYLOAD } from '@aws-sdk/signature-v4/src/constants'
 import { Sha256 } from '@aws-crypto/sha256-js'
-import xml2js from 'xml2js'
+import * as xml2js from 'xml2js'
 import { CommonsTaskHandler } from './CommonsTaskHandler'
 import {
   UploadTask,
@@ -26,6 +26,18 @@ interface FileExtraInfo {
   bucket?: string
   key?: string
   uploadId?: string
+}
+
+interface CompleteMultipartUploadResult {
+  Bucket: string[]
+  ETag: string[]
+  Key: string[]
+}
+
+interface InitiateMultipartUploadResult {
+  Bucket: string[]
+  Key: string[]
+  UploadId: string[]
 }
 
 const xml2jsParser = new xml2js.Parser()
@@ -167,7 +179,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
             PartNumber: ck.index + 1,
           }))
           return this.completeMultipartUpload(key!, uploadId!, parts).pipe(
-            tap((res) => {
+            tap((res: Obj) => {
               file.response = res
             }),
           )
@@ -203,8 +215,8 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
             headers,
             responseType: 'text',
           }).pipe(
-            switchMap((res) => from(xml2jsParser.parseStringPromise(res.response))),
-            map((res) => {
+            switchMap((res: AjaxResponse) => from(xml2jsParser.parseStringPromise(res.response))),
+            map((res: { InitiateMultipartUploadResult: InitiateMultipartUploadResult }) => {
               let { Bucket, Key, UploadId } = res?.InitiateMultipartUploadResult
               return { bucket: Bucket[0], key: Key[0], uploadId: UploadId[0] }
             }),
@@ -215,7 +227,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
     return this.getRequestBaseURL().pipe(switchMap(job))
   }
 
-  private uploadPart(key: string, partNumber: number, uploadId: string, body: any) {
+  protected uploadPart(key: string, partNumber: number, uploadId: string, body: any) {
     const job = (baseURL: string) => {
       let requestToSign = {
         url: `${baseURL}/${key}`,
@@ -279,9 +291,9 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
             },
             responseType: 'text',
           }).pipe(
-            switchMap((res) => from(xml2jsParser.parseStringPromise(res.response))),
-            map(({ CompleteMultipartUploadResult }) => {
-              let { Bucket, ETag, Key } = CompleteMultipartUploadResult || {}
+            switchMap((res: AjaxResponse) => from(xml2jsParser.parseStringPromise(res.response))),
+            map((res: { CompleteMultipartUploadResult: CompleteMultipartUploadResult }) => {
+              let { Bucket, ETag, Key } = res.CompleteMultipartUploadResult || {}
               return {
                 uploadId,
                 bucket: Bucket[0],

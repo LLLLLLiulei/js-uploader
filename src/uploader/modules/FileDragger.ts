@@ -1,6 +1,5 @@
 import { Observable, fromEvent, from } from 'rxjs'
 import { tap, mergeMap } from 'rxjs/operators'
-import { scheduleWork } from '../../utils'
 import { FileDraggerOptions } from '../../interface'
 import { Logger } from '../../shared'
 
@@ -51,20 +50,20 @@ async function webkitGetAsEntryApi(dataTransfer: DataTransfer): Promise<any[]> {
   const rootPromises: Promise<any>[] = []
 
   const createPromiseToAddFileOrParseDirectory = (entry: any) => {
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
       if (entry.isFile) {
         entry.file(
           (file: any) => {
             file.relativePath = getRelativePath(entry)
             files.push(file)
-            resolve(null)
+            resolve()
           },
-          () => resolve(null),
+          () => resolve(),
         )
       } else if (entry.isDirectory) {
         getFilesAndDirectoriesFromDirectory(entry.createReader(), [], (entries: any[]) => {
           const promises = entries.map((entry) => createPromiseToAddFileOrParseDirectory(entry))
-          Promise.all(promises).then(() => resolve(null))
+          Promise.all(promises).then(() => resolve())
         })
       }
     })
@@ -88,10 +87,10 @@ function getRelativePath(fileEntry: any) {
 
 function getFilesAndDirectoriesFromDirectory(directoryReader: any, oldEntries: any[], callback: Function) {
   directoryReader.readEntries(
-    (entries: any) => {
+    (entries: any[]) => {
       const newEntries = [...oldEntries, ...entries]
-      if (entries.length) {
-        scheduleWork(() => getFilesAndDirectoriesFromDirectory(directoryReader, newEntries, callback), 500)
+      if (entries?.length) {
+        setTimeout(() => getFilesAndDirectoriesFromDirectory(directoryReader, newEntries, callback))
       } else {
         callback(newEntries)
       }
