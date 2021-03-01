@@ -491,11 +491,12 @@ export class Uploader extends Base {
           })
           const currentTasks: UploadTask[] = await this.generateTask(...filelist).toPromise()
           currentTasks.map((i) => tasks.add(i))
-          if (!timeRemaining || !timeRemaining?.()) {
+          if (!timeRemaining?.()) {
             break
           }
         }
-        files.length ? scheduleWork(fn) : finish([...tasks])
+
+        files.length ? scheduleWork(fn, 1000) : finish([...tasks])
       }
       scheduleWork(fn)
     })
@@ -517,7 +518,7 @@ export class Uploader extends Base {
               newTask = taskFactory(file, singleFileTask)
             } else {
               let parentPath: string = file.relativePath.substring(0, pos + 1)
-              let existsTask: UploadTask | undefined = [...this.taskQueue, ...newTasks].find((tsk) => {
+              let existsTask: UploadTask | undefined = this.taskQueue.concat(newTasks).find((tsk) => {
                 return tsk.fileIDList.some((id) => FileStore.get(id)?.relativePath.startsWith(parentPath))
               })
               if (existsTask) {

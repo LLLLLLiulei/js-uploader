@@ -17,7 +17,7 @@ import {
   AjaxResponse,
   StatusCode,
 } from '../../interface'
-import { of, from } from 'rxjs'
+import { of, from, Observable, Subscriber } from 'rxjs'
 import { tap, map, switchMap, catchError, mapTo, concatMap, filter, mergeMap } from 'rxjs/operators'
 import { ajax } from 'rxjs/ajax'
 import { Logger } from '../../shared'
@@ -173,16 +173,23 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
       overwriteBeforeFileUploadComplete: (task: UploadTask, file: UploadFile) => {
         const beforeFileComplete = () => beforeFileUploadComplete?.(task, file) || Promise.resolve()
         const completeMultipartUpload = () => {
-          let { key, uploadId } = this.getFileExtraInfo(file)
-          let parts: CompletedPart[] = file.chunkList?.map((ck: FileChunk) => ({
-            ETag: ck.response.etag,
-            PartNumber: ck.index + 1,
-          }))
-          return this.completeMultipartUpload(key!, uploadId!, parts).pipe(
-            tap((res: Obj) => {
-              file.response = res
-            }),
-          )
+          if (file.response.etag) {
+            return of(file.response)
+          }
+          return new Observable((subscriber: Subscriber<Obj>) => {
+            let { key, uploadId } = this.getFileExtraInfo(file)
+            let parts: CompletedPart[] = file.chunkList?.map((ck: FileChunk) => ({
+              ETag: ck.response.etag,
+              PartNumber: ck.index + 1,
+            }))
+            this.completeMultipartUpload(key!, uploadId!, parts)
+              .pipe(
+                tap((res: Obj) => {
+                  file.response = res
+                }),
+              )
+              .subscribe(subscriber)
+          })
         }
         return of(null).pipe(concatMap(completeMultipartUpload), concatMap(beforeFileComplete)).toPromise()
       },
