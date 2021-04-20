@@ -4,7 +4,6 @@ export const scheduleWork = (callback: (...args: any[]) => void, timeout?: numbe
   if (typeof callback !== 'function') {
     return
   }
-  timeout = timeout ?? 1000
   if ('requestIdleCallback' in window) {
     Logger.warn('scheduleWork : use requestIdleCallback!')
     window.requestIdleCallback((idle) => callback(() => idle.timeRemaining()), { timeout })
@@ -13,6 +12,6 @@ export const scheduleWork = (callback: (...args: any[]) => void, timeout?: numbe
     window.requestAnimationFrame(() => callback())
   } else {
     Logger.warn('scheduleWork : use setTimeout!')
-    window.setTimeout(() => callback(), timeout)
+    window.setTimeout(() => callback())
   }
 }

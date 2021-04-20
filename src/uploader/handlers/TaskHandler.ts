@@ -124,7 +124,7 @@ export abstract class TaskHandler extends Base {
               source.push(
                 from(Storage.BinaryLike.getItem(String(upfile.id))).pipe(
                   tap((blob: unknown) => {
-                    upfile.raw = blob ? (blob as Blob) : upfile.raw
+                    upfile.raw = blob instanceof Blob ? (blob as Blob) : upfile.raw
                   }),
                 ),
               )

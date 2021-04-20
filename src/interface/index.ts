@@ -1,3 +1,5 @@
+import type { Stats } from 'fs'
+
 /**
  * 事件类型
  */
@@ -26,6 +28,8 @@ export enum EventType {
   TaskPresist = 'task-presist',
   // 任务持久化
   TasksPresist = 'tasks-presist',
+  //   批量添加任务完成
+  TasksAdded = 'tasks-added',
   // 任务进入等待队列
   TaskWaiting = 'task-waiting',
   // 任务开始上传
@@ -34,6 +38,7 @@ export enum EventType {
   TaskProgress = 'task-progress',
   // 任务暂停上传
   TaskPause = 'task-pause',
+  TasksPause = 'tasks-pause',
   // 任务继续上传
   TaskResume = 'task-resume',
   // 任务重试
@@ -44,6 +49,8 @@ export enum EventType {
   TaskCancel = 'task-cancel',
   // 任务完成
   TaskComplete = 'task-complete',
+
+  Clear = 'clear',
 
   // 所有任务完成
   Complete = 'complete',
@@ -294,6 +301,10 @@ export interface UploaderOptions {
   // 文件过滤器
   fileFilter?: RegExp | ((fileName: string, file: File | string) => boolean)
 
+  //   读取目录的方法
+  readdirFn?: (path: string) => TPromise<string[]>
+  //   获取文件stat的方法
+  fileStatFn?: (path: string) => TPromise<Stats>
   // 读取文件的方法
   readFileFn?: (task: UploadTask, upfile: UploadFile, start?: number, end?: number) => TPromise<Blob>
 

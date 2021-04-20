@@ -10,7 +10,9 @@ export const fileFactory = (file: File): UploadFile => {
     size: file.size,
     type: file.type,
     lastModified: file.lastModified,
-    raw: file.slice(0, file.size, file.type),
+    raw: file instanceof Blob ? file : null,
+    // raw: file instanceof Blob ? file.slice(0, file.size, file.type) : null,
+    // raw: null,
     path: file['path'] || '',
     relativePath: normalizePath(file['relativePath'] || file['webkitRelativePath'] || file['name']),
 

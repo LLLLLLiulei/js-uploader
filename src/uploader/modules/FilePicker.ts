@@ -1,5 +1,5 @@
-import { fromEvent, Observable } from 'rxjs'
-import { filter, map, tap } from 'rxjs/operators'
+import { asapScheduler, asyncScheduler, from, fromEvent, Observable, scheduled } from 'rxjs'
+import { delay, delayWhen, filter, map, mapTo, mergeMap, reduce, tap } from 'rxjs/operators'
 import { FilePickerOptions } from '../../interface'
 import { Logger } from '../../shared'
 export class FilePicker {
@@ -12,9 +12,26 @@ export class FilePicker {
       throw new Error()
     }
     this.$el = $el instanceof HTMLInputElement ? $el : this.createInput(opts)
+
+    const reduceFile = () =>
+      scheduled(this.$el.files as FileList, asapScheduler)
+        .pipe(
+          reduce((acc: File[], val) => {
+            acc.push(val)
+            return acc
+          }, []),
+        )
+        .toPromise()
+
     this.setInputAttr(multiple, directory, accept)
+
     this.file$ = fromEvent(this.$el, 'change').pipe(
-      filter(() => this.$el.files != null && this.$el.files.length > 0),
+      tap((e: Event) => {
+        console.log(e)
+      }),
+      delayWhen(() => from(new Promise(setTimeout as any))),
+      filter(() => !!this.$el.files?.length),
+      //   mergeMap(() => from(reduceFile())),
       map(() => Array.from(this.$el.files as FileList)),
       tap((files: File[]) => {
         this.$el.value = ''
@@ -33,6 +50,8 @@ export class FilePicker {
         position: 'absolute',
         width: '1px',
         height: '1px',
+        top: '-1px',
+        left: '-1px',
       })
       document.body.append($input)
     }

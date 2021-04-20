@@ -23,7 +23,7 @@ import {
   Subscription,
   throwError,
   scheduled,
-  animationFrameScheduler,
+  asyncScheduler,
 } from 'rxjs'
 import {
   tap,
@@ -57,11 +57,15 @@ export class CommonsTaskHandler extends TaskHandler {
     task.status = task.status === StatusCode.Complete ? task.status : StatusCode.Pause
     this.isResumable() && this.presistTaskOnly(this.task)
 
-    task.fileList?.forEach((file) => {
-      let status = file.status === StatusCode.Complete ? file.status : StatusCode.Pause
-      this.changeUploadFileStatus(file, status)
-      this.isResumable() && this.presistFileOnly(file)
-    })
+    scheduled(task.fileList, asyncScheduler)
+      .pipe(
+        tap((file) => {
+          let status = file.status === StatusCode.Complete ? file.status : StatusCode.Pause
+          this.changeUploadFileStatus(file, status)
+          this.isResumable() && this.presistFileOnly(file)
+        }),
+      )
+      .subscribe()
     this.emit(EventType.TaskPause, this.task)
     return this
   }
@@ -123,7 +127,7 @@ export class CommonsTaskHandler extends TaskHandler {
   }
 
   private createUploadJob(task: UploadTask): Observable<{ uploadFile: UploadFile; chunkResponses: ChunkResponse[] }> {
-    return scheduled(task.fileIDList, animationFrameScheduler).pipe(
+    return scheduled(task.fileIDList, asyncScheduler).pipe(
       concatMap((fileID) => {
         // 根据ID获取文件
         return this.getUploadFileByID(fileID).pipe(
@@ -269,7 +273,7 @@ export class CommonsTaskHandler extends TaskHandler {
       currentChunkSize: 0,
     }
 
-    return scheduled(chunkList, animationFrameScheduler).pipe(
+    return scheduled(chunkList, asyncScheduler).pipe(
       filter((chunk) => {
         // 过滤完成的分片
         const isComplete = chunk.status === StatusCode.Complete

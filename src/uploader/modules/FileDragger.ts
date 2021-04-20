@@ -1,13 +1,16 @@
-import { Observable, fromEvent, from } from 'rxjs'
-import { tap, mergeMap } from 'rxjs/operators'
-import { FileDraggerOptions } from '../../interface'
+import { Observable, fromEvent, from, of, scheduled, asapScheduler, asyncScheduler, async, combineLatest } from 'rxjs'
+import { tap, mergeMap, concatMap, map, combineAll, mapTo, concatAll, mergeAll, merge, last } from 'rxjs/operators'
+import { FileDraggerOptions, TPromise, UploaderOptions } from '../../interface'
 import { Logger } from '../../shared'
+import { isElectron } from '../../utils'
+import mime from 'mime'
+import { basename, normalize, relative, join, dirname } from 'path'
 
 export class FileDragger {
   $el: HTMLElement
   file$: Observable<File[]>
 
-  constructor(options: FileDraggerOptions) {
+  constructor(options: FileDraggerOptions, private uploadOptions?: UploaderOptions) {
     const { $el, onDragover, onDragenter, onDragleave, onDrop } = options
     if (!$el) {
       throw new Error()
@@ -37,6 +40,11 @@ export class FileDragger {
       return Promise.resolve([])
     }
     Logger.info('parseDataTransfer', dataTransfer.files.length, dataTransfer.items.length)
+    const fileStat = this.uploadOptions?.fileStatFn
+    const readdir = this.uploadOptions?.readdirFn
+    // if (isElectron() && typeof fileStat === 'function' && typeof readdir === 'function') {
+    //   return parseFilesByPath(dataTransfer, fileStat, readdir)
+    // }
     if (dataTransfer.items?.length && typeof dataTransfer.items[0].webkitGetAsEntry === 'function') {
       return webkitGetAsEntryApi(dataTransfer)
     } else {
@@ -45,12 +53,72 @@ export class FileDragger {
   }
 }
 
-async function webkitGetAsEntryApi(dataTransfer: DataTransfer): Promise<any[]> {
-  const files: any[] = []
-  const rootPromises: Promise<any>[] = []
+async function parseFilesByPath(
+  dataTransfer: DataTransfer,
+  fileStat: NonNullable<UploaderOptions['fileStatFn']>,
+  readdir: NonNullable<UploaderOptions['readdirFn']>,
+): Promise<File[]> {
+  console.time('parseFilesByPath')
+  const list: File[] = []
+  let rootDir: string = ''
+  const loop = async (filePath: string): Promise<void> => {
+    if (!filePath) {
+      return
+    }
+    let stat = null
+    try {
+      stat = await toPromise(fileStat(filePath))
+    } catch (error) {
+      Logger.warn(filePath + ' not exists')
+    }
+    if (stat?.isFile()) {
+      let name = basename(filePath)
+      const file = {
+        lastModified: stat.mtimeMs,
+        name,
+        size: stat.size,
+        type: mime.getType(filePath),
+        path: filePath,
+        relativePath: rootDir ? relative(rootDir, filePath) : name,
+      }
+      console.log('🚀 ~ file: FileDragger.ts ~ line 84 ~ loop ~ file', file)
+      list.push((file as unknown) as File)
+    } else if (stat?.isDirectory()) {
+      const children = await toPromise(readdir(filePath))
+      await scheduled(children, asyncScheduler)
+        .pipe(concatMap((name) => from(loop(join(filePath, name)))))
+        .toPromise()
 
+      //   let promises = (await toPromise(readdir(filePath))).map((name) => loop(join(filePath, name)))
+      //   await Promise.all(promises)
+    }
+  }
+
+  await Promise.all(
+    Array.from(dataTransfer.files).map(async (file: any) => {
+      rootDir = dirname(file.path)
+      return await loop(file.path)
+    }),
+  )
+  console.log('🚀 ~ file: FileDragger.ts ~ line 107 ~ list', list)
+  console.timeEnd('parseFilesByPath')
+  return list
+}
+
+function toObserverble<T>(input: TPromise<T>): Observable<T> {
+  return input && input instanceof Promise ? from(input) : of(input)
+}
+
+function toPromise<T>(input: TPromise<T>): Promise<T> {
+  return input && input instanceof Promise ? input : Promise.resolve(input)
+}
+
+async function webkitGetAsEntryApi(dataTransfer: DataTransfer): Promise<any[]> {
+  console.time('webkitGetAsEntryApi')
+  const files: any[] = []
+  const promises: Promise<any>[] = []
   const createPromiseToAddFileOrParseDirectory = (entry: any) => {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(async (resolve) => {
       if (entry.isFile) {
         entry.file(
           (file: any) => {
@@ -61,9 +129,9 @@ async function webkitGetAsEntryApi(dataTransfer: DataTransfer): Promise<any[]> {
           () => resolve(),
         )
       } else if (entry.isDirectory) {
-        getFilesAndDirectoriesFromDirectory(entry.createReader(), [], (entries: any[]) => {
-          const promises = entries.map((entry) => createPromiseToAddFileOrParseDirectory(entry))
-          Promise.all(promises).then(() => resolve())
+        let entries = await parseDir(entry.createReader(), [])
+        scheduled(entries, asyncScheduler).pipe(map(createPromiseToAddFileOrParseDirectory), mergeAll()).subscribe({
+          complete: resolve,
         })
       }
     })
@@ -72,17 +140,24 @@ async function webkitGetAsEntryApi(dataTransfer: DataTransfer): Promise<any[]> {
   try {
     Array.from(dataTransfer.items).forEach((item: DataTransferItem) => {
       const entry = item.webkitGetAsEntry()
-      entry && rootPromises.push(createPromiseToAddFileOrParseDirectory(entry))
+      entry && promises.push(createPromiseToAddFileOrParseDirectory(entry))
     })
-    await Promise.all(rootPromises)
+    await Promise.all(promises)
   } catch (error) {
     Logger.error(error)
   }
+  console.timeEnd('webkitGetAsEntryApi')
   return files
 }
 
 function getRelativePath(fileEntry: any) {
-  return String(fileEntry.fullPath || fileEntry.name).replace(/^\//, '')
+  let p = (fileEntry.fullPath || fileEntry.name) as string
+  return p.startsWith('/') ? p.substr(1) : p
+  //   return String(fileEntry.fullPath || fileEntry.name).replace(/^\//, '')
+}
+
+function parseDir(directoryReader: any, oldEntries: any[]) {
+  return new Promise<any[]>((resolve) => getFilesAndDirectoriesFromDirectory(directoryReader, oldEntries, resolve))
 }
 
 function getFilesAndDirectoriesFromDirectory(directoryReader: any, oldEntries: any[], callback: Function) {

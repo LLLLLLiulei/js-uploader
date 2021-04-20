@@ -47,3 +47,5 @@ declare namespace SparkMD5 {
     setState(state: State): State
   }
 }
+
+declare type Noop = (...args: any[]) => any
