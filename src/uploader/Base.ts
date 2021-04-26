@@ -1,18 +1,5 @@
-import { EventEmitter, Storage, FileStore } from './modules'
-import {
-  Observable,
-  from,
-  of,
-  Subscriber,
-  Subscription,
-  forkJoin,
-  NEVER,
-  scheduled,
-  asapScheduler,
-  asyncScheduler,
-  concat,
-  merge,
-} from 'rxjs'
+import { EventEmitter, FileStore, RxStorage } from './modules'
+import { Observable, from, of, Subscriber, Subscription, forkJoin, NEVER, merge } from 'rxjs'
 import {
   bufferCount,
   concatMap,
@@ -22,13 +9,9 @@ import {
   takeUntil,
   tap,
   map,
-  combineAll,
   filter,
   reduce,
-  concatAll,
-  mergeAll,
   switchMap,
-  buffer,
 } from 'rxjs/operators'
 import { EventType, FileChunk, ID, MaybePromise, TPromise, UploadFile, UploadTask } from '../interface'
 import { Logger } from '../shared'
@@ -67,15 +50,13 @@ export default class Base extends EventEmitter {
       key: String(chunk.id),
       value: Object.assign({}, chunk, { data: null }),
     }))
-    if (items?.length > 1000) {
-      return from(items)
-        .pipe(
-          bufferCount(1000),
-          concatMap((values) => Storage.FileChunk.setItems(values)),
-        )
-        .toPromise()
-    }
-    return Storage.FileChunk.setItems(items)
+
+    return from(items)
+      .pipe(
+        bufferCount(1000),
+        concatMap((values) => RxStorage.FileChunk.setItems(values)),
+      )
+      .toPromise()
   }
 
   protected presistFileOnly(...files: UploadFile[]): Promise<void> {
@@ -83,15 +64,13 @@ export default class Base extends EventEmitter {
       key: String(file.id),
       value: Object.assign({}, file, { raw: null, chunkList: null }),
     }))
-    if (items?.length > 1000) {
-      return from(items)
-        .pipe(
-          bufferCount(1000),
-          concatMap((values) => Storage.UploadFile.setItems(values)),
-        )
-        .toPromise()
-    }
-    return Storage.UploadFile.setItems(items)
+
+    return from(items)
+      .pipe(
+        bufferCount(1000),
+        concatMap((values) => RxStorage.UploadFile.setItems(values)),
+      )
+      .toPromise()
   }
 
   protected presistTaskOnly(...tasks: UploadTask[]): Promise<void> {
@@ -99,15 +78,13 @@ export default class Base extends EventEmitter {
       key: String(task.id),
       value: Object.assign({}, task, { fileList: null }),
     }))
-    if (items?.length > 1000) {
-      return from(items)
-        .pipe(
-          bufferCount(1000),
-          concatMap((values) => Storage.UploadTask.setItems(values)),
-        )
-        .toPromise()
-    }
-    return Storage.UploadTask.setItems(items)
+
+    return from(items)
+      .pipe(
+        bufferCount(1000),
+        concatMap((values) => RxStorage.UploadTask.setItems(values)),
+      )
+      .toPromise()
   }
 
   protected presistUploadFile(file: UploadFile | undefined): Promise<any> {
@@ -121,14 +98,14 @@ export default class Base extends EventEmitter {
         .then(() => {
           Logger.warn(`save file ${file.name}`)
           const upfile = file.raw instanceof Blob ? Object.assign({}, file, { raw: null }) : file
-          Storage.UploadFile.setItem(String(file.id), upfile).then(resolve).catch(reject)
+          RxStorage.UploadFile.setItem(file.id, upfile).toPromise().then(resolve).catch(reject)
         })
         .catch(reject)
     })
   }
 
-  protected presistBlob(key: string, blob: Blob): Promise<Blob> {
-    return Storage.BinaryLike.setItem(key, blob)
+  protected presistBlob(key: string, blob: Blob) {
+    return RxStorage.BinaryLike.setItem(key, blob).toPromise()
   }
 
   protected presistTaskWithoutBlob(tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
@@ -143,19 +120,15 @@ export default class Base extends EventEmitter {
         filter((file) => !!file),
         map((file) => {
           const upfile = file.raw instanceof Blob ? Object.assign({}, file, { raw: null }) : file
-          let value: KeyValuePair = {
-            key: String(upfile.id),
-            value: upfile,
-          }
-          return value
+          return { key: upfile.id, value: upfile }
         }),
         // reduce((arr: KeyValuePair[], val: KeyValuePair) => {
         //   arr.push(val)
         //   return arr
         // }, []),
         bufferCount(1000),
-        concatMap((values) => from(Storage.UploadFile.setItems(values))),
-        concatMap(() => from(Storage.UploadTask.setItem(String(uptask.id), uptask))),
+        concatMap((values) => RxStorage.UploadFile.setItems(values)),
+        concatMap(() => RxStorage.UploadTask.setItem(uptask.id, uptask)),
         last(),
         tap(() => {
           this.emit(EventType.TaskPresist, task)
@@ -176,7 +149,7 @@ export default class Base extends EventEmitter {
       return from(task.fileIDList).pipe(
         mergeMap((id) => from(this.presistUploadFile(FileStore.get(id)))),
         last(),
-        concatMap(() => from(Storage.UploadTask.setItem(String(uptask.id), uptask))),
+        concatMap(() => RxStorage.UploadTask.setItem(uptask.id, uptask)),
         tap(() => {
           this.emit(EventType.TaskPresist, task)
         }),
@@ -189,10 +162,10 @@ export default class Base extends EventEmitter {
   protected async removeChunkFromStroage(...chunks: FileChunk[] | ID[]) {
     if (chunks?.length) {
       if (typeof chunks[0] === 'object') {
-        await Storage.FileChunk.removeItems((<FileChunk[]>chunks).map((i) => String(i.id)))
+        await RxStorage.FileChunk.removeItems((<FileChunk[]>chunks).map((i) => i.id)).toPromise()
         console.log('Storage.FileChunk.removeItems')
       } else {
-        await Storage.FileChunk.removeItems((<ID[]>chunks).map((i) => String(i)))
+        await RxStorage.FileChunk.removeItems((<ID[]>chunks).map((i) => i)).toPromise()
         console.log('Storage.FileChunk.removeItems')
       }
     }
@@ -212,22 +185,23 @@ export default class Base extends EventEmitter {
 
     return of(ids)
       .pipe(
-        concatMap(() => from(Storage.UploadFile.removeItems(ids))),
+        concatMap(() => RxStorage.UploadFile.removeItems(ids)),
         tap(() => {
           console.log('Storage.UploadFile.removeItems', ids)
         }),
-        concatMap(() => from(Storage.BinaryLike.removeItems(ids))),
+
+        concatMap(() => RxStorage.BinaryLike.removeItems(ids)),
         tap(() => {
           console.log('Storage.BinaryLike.removeItems', ids)
         }),
         concatMap(() =>
           from(ids).pipe(
-            mergeMap((id: string) => from(Storage.FileChunk.keysStartingWith(id))),
-            reduce((arr: string[], val: string[]) => arr.concat(val), []),
+            mergeMap((id: string) => RxStorage.FileChunk.getKeysWhenKeyStartsWith(id)),
+            reduce((arr: ID[], val: ID[]) => arr.concat(val), []),
             tap((val) => {
               console.log('Storage.FileChunk.keysStartingWith', val)
             }),
-            switchMap((chunkIds: string[]) => from(this.removeChunkFromStroage(...chunkIds))),
+            switchMap((chunkIds: ID[]) => from(this.removeChunkFromStroage(...chunkIds))),
           ),
         ),
       )
@@ -240,7 +214,7 @@ export default class Base extends EventEmitter {
     }
     const ids = tasks.map((i) => String(i.id))
     const fileIDs = tasks.reduce((res: ID[], cur) => res.concat(cur.fileIDList), [])
-    await from(Storage.UploadTask.removeItems(ids))
+    await RxStorage.UploadTask.removeItems(ids)
       .pipe(
         tap(() => {
           console.log('Storage.UploadTask.removeItems', ids)
@@ -251,7 +225,7 @@ export default class Base extends EventEmitter {
   }
 
   protected clearStorage(): Promise<unknown> {
-    return Promise.all([Storage.BinaryLike.clear(), Storage.UploadFile.clear(), Storage.UploadTask.clear()])
+    return merge(RxStorage.UploadTask.clear(), RxStorage.UploadFile.clear(), RxStorage.BinaryLike.clear()).toPromise()
   }
 
   protected hookWrap<T extends MaybePromise, V = any>(fn: T, promiseValue?: V): Promise<any> {

@@ -1,3 +1,5 @@
+import { from } from 'rxjs'
+import { map, bufferCount } from 'rxjs/operators'
 import { ID, UploadFile } from '../../interface'
 
 export class FileStore {
@@ -12,7 +14,7 @@ export class FileStore {
   }
 
   static addAll(files: UploadFile[]): void {
-    if (files && files.length > 0) {
+    if (files?.length > 0) {
       files.forEach((f) => FileStore.add(f))
     }
   }
@@ -32,6 +34,15 @@ export class FileStore {
       return
     }
     return FileStore.store.get(fileID)
+  }
+
+  static list() {
+    return from(FileStore.store)
+      .pipe(
+        map((item) => item[1]),
+        bufferCount(FileStore.store.size),
+      )
+      .toPromise()
   }
 
   static size() {

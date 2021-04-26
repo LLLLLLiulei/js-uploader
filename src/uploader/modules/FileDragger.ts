@@ -1,8 +1,7 @@
-import { Observable, fromEvent, from, of, scheduled, asapScheduler, asyncScheduler, async, combineLatest } from 'rxjs'
-import { tap, mergeMap, concatMap, map, combineAll, mapTo, concatAll, mergeAll, merge, last } from 'rxjs/operators'
+import { Observable, fromEvent, from, of, scheduled, asyncScheduler } from 'rxjs'
+import { tap, mergeMap, concatMap, map, mergeAll } from 'rxjs/operators'
 import { FileDraggerOptions, TPromise, UploaderOptions } from '../../interface'
 import { Logger } from '../../shared'
-import { isElectron } from '../../utils'
 import mime from 'mime'
 import { basename, normalize, relative, join, dirname } from 'path'
 

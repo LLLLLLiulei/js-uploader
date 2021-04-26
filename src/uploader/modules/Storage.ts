@@ -1,71 +1,31 @@
-// import localforage from 'localforage'
-import * as localforage from 'localforage'
-// import localforage = require('localforage')
-import { extendPrototype as extendRemoveitems } from 'localforage-removeitems'
-import { extendPrototype as extendSetitems } from 'localforage-setitems'
-import { extendPrototype as extendGetitems } from 'localforage-getitems'
-import { extendPrototype as extendStartswith } from 'localforage-startswith'
-
 import { IDB } from './IDB'
 import { FileChunk, ID, UploadFile, UploadTask } from '../../interface'
-console.log('🚀 ~ file: Storage.ts ~ line 11 ~ IDB', IDB)
-Object.assign(window, { IDB })
-type MyStorage = LocalForage & {
-  list: () => Promise<unknown[]>
+
+class RxIDB extends IDB {
+  static readonly dbPrefix = 'js-uploader'
+  readonly UploadTask: IDB<ID, UploadTask> = IDB.createInstance<ID, UploadTask>(RxIDB.dbPrefix + '_task')
+  readonly UploadFile: IDB<ID, UploadFile> = IDB.createInstance<ID, UploadFile>(RxIDB.dbPrefix + '_file')
+  readonly FileChunk: IDB<ID, FileChunk> = IDB.createInstance<ID, FileChunk>(RxIDB.dbPrefix + '_chunk')
+  readonly BinaryLike: IDB<ID> = IDB.createInstance<ID>(RxIDB.dbPrefix + '_binary')
+
+  constructor() {
+    super(RxIDB.dbPrefix + '_public')
+  }
 }
 
-function extendList(instance: LocalForage): MyStorage {
-  return Object.assign(instance, {
-    list(): Promise<unknown[]> {
-      return new Promise((resolve, reject) => {
-        const list: unknown[] = []
-        instance
-          .iterate((value: unknown) => {
-            list.push(value)
-          })
-          .then(() => resolve(list))
-          .catch((err: Error) => reject(err))
-      })
-    },
-  })
-}
+// class RxIDB extends IDB {
+//   static readonly dbPrefix = 'js-uploader'
+//   readonly UploadTask: IDB<ID, UploadTask> = IDB.createInstance<ID, UploadTask>(RxIDB.dbPrefix, 'upload-task')
+//   readonly UploadFile: IDB<ID, UploadFile> = IDB.createInstance<ID, UploadFile>(RxIDB.dbPrefix, 'upload-file')
+//   readonly FileChunk: IDB<ID, FileChunk> = IDB.createInstance<ID, FileChunk>(RxIDB.dbPrefix, 'file-chunk')
+//   readonly BinaryLike: IDB<ID> = IDB.createInstance<ID>(RxIDB.dbPrefix, 'binary')
 
-function createInstance(opts: LocalForageOptions): MyStorage {
-  const instance = localforage.createInstance(opts)
-  extendRemoveitems(instance)
-  extendSetitems(instance)
-  extendGetitems(instance)
-  extendStartswith(instance)
-  extendList(instance)
-  return instance as MyStorage
-}
+//   constructor() {
+//     super(RxIDB.dbPrefix, 'public')
+//   }
+// }
 
-const INSTANCE_NAME = 'js-uploader'
-export class Storage {
-  static readonly UploadTask: MyStorage = createInstance({ name: INSTANCE_NAME + '_task' })
-  static readonly UploadFile: MyStorage = createInstance({ name: INSTANCE_NAME + '_file' })
-  static readonly FileChunk: MyStorage = createInstance({ name: INSTANCE_NAME + '_chunk' })
-  static readonly BinaryLike: MyStorage = createInstance({ name: INSTANCE_NAME + '_binary' })
+export const RxStorage = new RxIDB()
 
-  private static readonly Public: MyStorage = createInstance({ name: INSTANCE_NAME, storeName: 'Public' })
-
-  private constructor() {}
-
-  static get = Storage.Public.getItem.bind(Storage.Public)
-  static set = Storage.Public.setItem.bind(Storage.Public)
-  static remove = Storage.Public.removeItem.bind(Storage.Public)
-  static list = Storage.Public.list.bind(Storage.Public)
-  static clear = Storage.Public.clear.bind(Storage.Public)
-  static getItems = Storage.Public.getItems.bind(Storage.Public)
-  static setItems = Storage.Public.setItems.bind(Storage.Public)
-  static removeItems = Storage.Public.removeItems.bind(Storage.Public)
-}
-
-export class RxStorage {
-  static readonly UploadTask: IDB<string, UploadTask> = IDB.createInstance<string, UploadTask>(INSTANCE_NAME + '_task')
-  static readonly UploadFile: IDB<string, UploadFile> = IDB.createInstance<string, UploadFile>(INSTANCE_NAME + '_file')
-  static readonly FileChunk: IDB<string, FileChunk> = IDB.createInstance<string, FileChunk>(INSTANCE_NAME + '_chunk')
-  static readonly BinaryLike: IDB<string> = IDB.createInstance<string>(INSTANCE_NAME + '_binary')
-
-  private constructor() {}
-}
+// test
+Object.assign(window, { RxStorage, IDB })

@@ -2,7 +2,12 @@ import { idGenerator, normalizePath } from '../../utils'
 import { FileStore } from '../modules'
 import { StatusCode, UploadFile } from '../../interface'
 
-export const fileFactory = (file: File): UploadFile => {
+interface WebkitFile {
+  relativePath?: string
+  webkitRelativePath?: string
+}
+
+export const fileFactory = (file: File & WebkitFile): UploadFile => {
   const uploadFile: UploadFile = {
     id: 'file-' + idGenerator(),
     hash: '',
@@ -14,7 +19,7 @@ export const fileFactory = (file: File): UploadFile => {
     // raw: file instanceof Blob ? file.slice(0, file.size, file.type) : null,
     // raw: null,
     path: file['path'] || '',
-    relativePath: normalizePath(file['relativePath'] || file['webkitRelativePath'] || file['name']),
+    relativePath: normalizePath(file.relativePath || file.webkitRelativePath || file.name),
 
     uploaded: 0,
     chunkIDList: [],

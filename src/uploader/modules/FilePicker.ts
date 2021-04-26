@@ -1,5 +1,5 @@
-import { asapScheduler, asyncScheduler, from, fromEvent, Observable, scheduled } from 'rxjs'
-import { delay, delayWhen, filter, map, mapTo, mergeMap, reduce, tap } from 'rxjs/operators'
+import { asapScheduler, from, fromEvent, Observable, scheduled } from 'rxjs'
+import { delay, delayWhen, filter, map, reduce, tap } from 'rxjs/operators'
 import { FilePickerOptions } from '../../interface'
 import { Logger } from '../../shared'
 export class FilePicker {

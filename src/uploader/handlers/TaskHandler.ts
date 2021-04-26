@@ -2,7 +2,7 @@ import { Observable, Subscriber, of, from, forkJoin, Subscription, PartialObserv
 import { ID, Obj, StatusCode, UploaderOptions, UploadFile, UploadTask, FileChunk, TPromise } from '../../interface'
 import { fileReader } from '../helpers'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
-import { FileStore, Storage } from '../modules'
+import { FileStore, RxStorage } from '../modules'
 import Base from '../Base'
 import { md5WorkerPool } from '../../shared'
 
@@ -97,18 +97,17 @@ export abstract class TaskHandler extends Base {
       if (uploadFile) {
         file$ = of(uploadFile)
       } else {
-        file$ = from(Storage.UploadFile.getItem(String(id))).pipe(
-          concatMap((file: unknown) => {
-            if (!file) {
+        file$ = RxStorage.UploadFile.getItem(id).pipe(
+          concatMap((upfile) => {
+            if (!upfile) {
               return of(null)
             }
             const source = []
-            const upfile = file as UploadFile
             const { chunkIDList, chunkList } = upfile
             if (chunkIDList && chunkIDList.length && (!chunkList || chunkList.length !== chunkIDList.length)) {
               source.push(
-                from(Storage.FileChunk.getItems(chunkIDList as Array<string>)).pipe(
-                  map((res) => Object.values(res) as Array<FileChunk>),
+                RxStorage.FileChunk.getItems(chunkIDList).pipe(
+                  map((res) => Object.values(res)),
                   tap((chunkList: FileChunk[]) => {
                     upfile.chunkList = chunkList.filter((ck) => {
                       if (ck) {
@@ -122,7 +121,7 @@ export abstract class TaskHandler extends Base {
             }
             if (!upfile.raw) {
               source.push(
-                from(Storage.BinaryLike.getItem(String(upfile.id))).pipe(
+                RxStorage.BinaryLike.getItem(upfile.id).pipe(
                   tap((blob: unknown) => {
                     upfile.raw = blob instanceof Blob ? (blob as Blob) : upfile.raw
                   }),

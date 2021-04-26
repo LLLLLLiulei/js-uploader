@@ -32,7 +32,7 @@ export class ContextLogger {
       const params: [string, Level, ...any[]] = [this.name, this.level, ...message]
       output = this.formatter.apply(this, params)
     }
-    this.adapter[method].call(this.adapter, ...output)
+    this.adapter[method as keyof LoggerAdapter].call(this.adapter, ...output)
     const fns = this.effects.get(method as keyof LoggerAdapter) || []
     fns.forEach((fn) => fn(...message))
   }

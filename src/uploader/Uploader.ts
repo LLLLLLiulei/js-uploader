@@ -1,5 +1,5 @@
-import { ID, StatusCode, EventType, UploaderOptions, UploadFile, UploadTask, TPromise } from '../interface'
-import { FileStore, Storage, FileDragger, FilePicker } from './modules'
+import { ID, StatusCode, EventType, UploaderOptions, UploadFile, UploadTask } from '../interface'
+import { FileStore, FileDragger, FilePicker, RxStorage } from './modules'
 import { handle as handleTask, TaskHandler } from './handlers'
 import {
   tap,
@@ -12,9 +12,7 @@ import {
   switchMap,
   takeUntil,
   last,
-  combineAll,
   bufferCount,
-  concatMapTo,
 } from 'rxjs/operators'
 import {
   from,
@@ -26,14 +24,13 @@ import {
   fromEvent,
   race,
   of,
-  animationFrameScheduler,
   scheduled,
   Subscriber,
   asapScheduler,
   asyncScheduler,
 } from 'rxjs'
 import Base from './Base'
-import { isElectron, scheduleWork } from '../utils'
+import { isElectron } from '../utils'
 import { taskFactory, fileFactory } from './helpers'
 import { Logger } from '../shared'
 
@@ -87,9 +84,12 @@ export class Uploader extends Base {
 
   private mergeOptions(options?: UploaderOptions): UploaderOptions {
     let opt = Object.assign({}, defaultOptions, options)
-    Object.keys(defaultOptions).forEach((k) => {
+    Object.keys(defaultOptions).forEach((key) => {
+      let k = key as keyof UploaderOptions
       if (typeof defaultOptions[k] === 'object') {
-        opt[k] = Object.assign(defaultOptions[k], opt[k])
+        Object.assign(defaultOptions[k], opt[k])
+        let val = Object.assign({}, defaultOptions[k], opt[k])
+        Object.assign(opt, { [k]: val })
       }
     })
     return opt
@@ -213,8 +213,6 @@ export class Uploader extends Base {
       .subscribe({
         complete: () => {
           this.emit(EventType.TasksPause)
-          sub?.unsubscribe()
-          sub = null
         },
       })
   }
@@ -349,7 +347,7 @@ export class Uploader extends Base {
   }
 
   private async restoreTask(): Promise<UploadTask[]> {
-    const taskList: UploadTask[] = (await Storage.UploadTask.list()) as UploadTask[]
+    const taskList: UploadTask[] = await RxStorage.UploadTask.values().toPromise()
     console.log('🚀 ~ file: Uploader.ts ~ line 355 ~ Uploader ~ restoreTask ~ taskList', taskList)
 
     return scheduled(taskList, asyncScheduler)
@@ -446,10 +444,6 @@ export class Uploader extends Base {
                 concatMap((files: File[]) => {
                   return from(this.addFilesAsync(...files)).pipe(map((tasks) => ({ files, tasks })))
                 }),
-                tap(({ tasks }) => {
-                  console.log('🚀 ~ file: Uploader.ts ~ line 470 ~ Uploader ~ tap ~ tasks', tasks)
-                  this.emit(EventType.TasksAdded, tasks)
-                }),
                 takeUntil(this.clear$),
               )
             }),
@@ -506,6 +500,12 @@ export class Uploader extends Base {
         return resolve([])
       }
 
+      const resolveTasks = (tasks: UploadTask[]) => {
+        resolve(tasks)
+        console.log('🚀 ~ file: Uploader.ts ~ line 470 ~ Uploader ~ tap ~ tasks', tasks)
+        this.emit(EventType.TasksAdded, tasks)
+      }
+
       const finish = (tasks: UploadTask[]) => {
         console.log('🚀 ~ file: Uploader.ts ~ line 529 ~ Uploader ~ finish ~ tasks', tasks)
         if (this.options.resumable) {
@@ -520,12 +520,12 @@ export class Uploader extends Base {
               this.emit(EventType.TasksPresist, tasks)
               sub?.unsubscribe()
               sub = null
-              resolve(tasks)
+              resolveTasks(tasks)
               console.timeEnd('addFilesAsync')
             },
           })
         } else {
-          resolve(tasks)
+          resolveTasks(tasks)
           console.timeEnd('addFilesAsync')
         }
       }

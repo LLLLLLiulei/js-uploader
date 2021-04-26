@@ -452,7 +452,7 @@ export class CommonsTaskHandler extends TaskHandler {
         chunkList[chunk.index].uploaded = chunk.uploaded = chunkLoaded
         chunk.progress = Math.max(Math.round((chunkLoaded / chunkSize) * 100), chunk.progress || 0)
 
-        let fileUploaded: number = chunkList.reduce(reduceFn, 0)
+        let fileUploaded: number = chunkList.reduce(reduceFn, 0) || 0
         let fileProgress: number = Math.round((fileUploaded / file.size) * 100)
         fileProgress = Math.max(Math.min(fileProgress, 100), file.progress || 0)
         file.uploaded = fileUploaded

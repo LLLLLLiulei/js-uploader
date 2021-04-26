@@ -1,5 +1,4 @@
 import { SignatureV4 } from '@aws-sdk/signature-v4'
-import { SHA256_HEADER, UNSIGNED_PAYLOAD } from '@aws-sdk/signature-v4/src/constants'
 import { Sha256 } from '@aws-crypto/sha256-js'
 import * as xml2js from 'xml2js'
 import { CommonsTaskHandler } from './CommonsTaskHandler'
@@ -21,6 +20,9 @@ import { of, from, Observable, Subscriber } from 'rxjs'
 import { tap, map, switchMap, catchError, mapTo, concatMap, filter, mergeMap } from 'rxjs/operators'
 import { ajax } from 'rxjs/ajax'
 import { Logger } from '../../shared'
+
+const SHA256_HEADER = 'x-amz-content-sha256'
+const UNSIGNED_PAYLOAD = 'UNSIGNED-PAYLOAD'
 
 interface FileExtraInfo {
   bucket?: string

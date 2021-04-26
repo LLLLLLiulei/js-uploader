@@ -53,7 +53,7 @@
         "npm-run-all": "^4.1.5",
         "prettier": "^2.0.5",
         "raw-loader": "^4.0.1",
-        "rxjs": "^6.6.2",
+        "rxjs": "6.5.3",
         "rxjs-tslint-rules": "^4.34.3",
         "shelljs": "^0.8.4",
         "shx": "^0.3.3",
@@ -73,21 +73,14 @@
     "dependencies": {
         "@aws-crypto/sha256-js": "^1.1.0",
         "@aws-sdk/signature-v4": "^3.5.0",
-        "localforage": "^1.9.0",
-        "localforage-getitems": "^1.4.2",
-        "localforage-removeitems": "^1.4.0",
-        "localforage-setitems": "^1.4.0",
-        "localforage-startswith": "^1.4.0",
+        "@types/mime": "^2.0.3",
+        "mime": "^2.5.2",
+        "path-browserify": "^1.0.1",
         "xml2js": "^0.4.23"
     },
     "peerDependencies": {
         "@aws-crypto/sha256-js": "^1.1.0",
         "@aws-sdk/signature-v4": "^3.5.0",
-        "localforage": "^1.9.0",
-        "localforage-getitems": "^1.4.2",
-        "localforage-removeitems": "^1.4.0",
-        "localforage-setitems": "^1.4.0",
-        "localforage-startswith": "^1.4.0",
         "rxjs": "^6.5.3",
         "tslib": "^1.10.0",
         "xml2js": "^0.4.23"
