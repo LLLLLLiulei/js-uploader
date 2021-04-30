@@ -82,7 +82,7 @@ export class IDB<K extends string | number = string, V extends any = unknown> {
         const transaction = db.transaction(this.tableName, Constants.Readonly)
         const request = transaction.objectStore(this.tableName).openCursor()
         const record = {} as Record<K, V>
-        request.onsuccess = (e: Event) => {
+        request.onsuccess = (_e: Event) => {
           let cursor = request.result
           if (cursor) {
             const { key, value } = cursor

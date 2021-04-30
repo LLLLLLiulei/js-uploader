@@ -33,6 +33,7 @@ import Base from './Base'
 import { isElectron } from '../utils'
 import { taskFactory, fileFactory } from './helpers'
 import { Logger } from '../shared'
+import { async } from 'rxjs/internal/scheduler/async'
 
 const defaultOptions: UploaderOptions = {
   requestOptions: {
@@ -205,7 +206,7 @@ export class Uploader extends Base {
     }
     let tasks = task ? [task] : this.taskQueue
 
-    let sub: Nullable<Subscription> = from(tasks)
+    from(tasks)
       .pipe(
         filter((tsk: UploadTask) => tsk.status !== StatusCode.Pause && tsk.status !== StatusCode.Complete),
         tap((tsk) => fn(tsk)),
@@ -245,6 +246,38 @@ export class Uploader extends Base {
       .subscribe({ complete: unsubscribe })
   }
 
+  cancelFile(item: { task: UploadTask; files: UploadFile[] }) {
+    let { task, files } = item
+    let handler = this.taskHandlerMap.get(task.id)?.abortFile(...files)
+    let rawTask = this.taskQueue.find((i) => i.id === task.id)
+    if (!handler && rawTask) {
+      files.forEach((file) => {
+        let idIndex = rawTask?.fileIDList.indexOf(file.id)!
+        if (idIndex > -1) {
+          rawTask?.fileIDList.splice(idIndex, 1)
+          rawTask!.fileSize -= file.size
+
+          this.emit(EventType.FileCancel, rawTask, FileStore.get(file.id))
+        }
+        let fileIndex = rawTask?.fileList.findIndex((i) => i.id === file.id)!
+        if (fileIndex !== -1) {
+          rawTask?.fileList.splice(fileIndex, 1)
+        }
+        this.emit(EventType.TaskUpdate, rawTask)
+      })
+      this.emit(EventType.FilesCancel, rawTask, files)
+    }
+
+    this.once(EventType.FilesCancel, () => {
+      if (this.options.resumable) {
+        this.presistTaskOnly(task)
+        this.removeFileFromStroage(...files)
+        this.removeChunkFromStroage(...files.reduce((arr: ID[], i) => arr.concat(i.chunkIDList), []))
+      }
+      this.removeFileFromFileStore(...files.map((i) => i.id))
+    })
+  }
+
   isUploading(): boolean {
     if (this.uploadSubscription?.closed) {
       return false
@@ -273,7 +306,7 @@ export class Uploader extends Base {
     if (!Array.isArray(tasks)) {
       tasks = [tasks]
     }
-    return scheduled(tasks, asyncScheduler)
+    return scheduled(tasks || [], asyncScheduler)
       .pipe(
         tap((task) => {
           let index = this.taskQueue.findIndex((i) => i.id === task?.id)
@@ -350,13 +383,13 @@ export class Uploader extends Base {
     const taskList: UploadTask[] = await RxStorage.UploadTask.values().toPromise()
     console.log('🚀 ~ file: Uploader.ts ~ line 355 ~ Uploader ~ restoreTask ~ taskList', taskList)
 
-    return scheduled(taskList, asyncScheduler)
+    return scheduled(taskList || [], asyncScheduler)
       .pipe(
         tap((task) => {
           if (task.status === StatusCode.Complete) {
             this.removeTaskFromStroage(task)
           } else {
-            task.status = StatusCode.Pause
+            task.status = task.status === StatusCode.Error ? task.status : StatusCode.Pause
             task.progress = task.progress >= 100 ? 99 : task.progress
             this.taskQueue.push(task)
             this.options.autoUpload && this.upload(task)
@@ -533,7 +566,7 @@ export class Uploader extends Base {
       const { fileFilter } = this.options
       const tasks: Set<UploadTask> = new Set()
 
-      scheduled(files, asapScheduler)
+      scheduled(files || [], asapScheduler)
         .pipe(
           filter((file) => {
             let accept: boolean = true
@@ -558,7 +591,7 @@ export class Uploader extends Base {
             console.timeEnd('2222222222222222')
           }),
           concatMap((files: UploadFile[]) => this.generateTask(...files)),
-          tap((a) => {
+          tap(() => {
             console.timeEnd('1111111111111111')
           }),
           tap((data) => data?.forEach((i) => i && tasks.add(i))),

@@ -1,4 +1,5 @@
 import { Subject, Subscription } from 'rxjs'
+import { filter } from 'rxjs/operators'
 
 interface UploadEvent {
   type: string
@@ -28,14 +29,21 @@ export class EventEmitter {
     this.removeListener(type, listener)
   }
 
-  protected emit(type: string, ...data: any[]): void {
+  emit(type: string, ...data: any[]): void {
     type && this.eventSubject.next({ type, data })
   }
 
   addListener(type: string, listener: EventListener, once?: boolean): void {
     const list: SubscriptionInfo[] = this.getSubscriptionList(type)
     list.some((i) => i.listener === listener) && this.off(type, listener)
-    const subscription = this.eventSubject.subscribe(this.listenerWrap(type, listener, once))
+
+    const subscription = this.eventSubject.pipe(filter((e) => e.type === type)).subscribe({
+      next: (e) => {
+        once && this.off(type, listener)
+        listener(...(e.data || []))
+      },
+    })
+
     list.push({ listener, subscription })
   }
 
@@ -53,18 +61,5 @@ export class EventEmitter {
     const list: SubscriptionInfo[] = this.listenerMap.get(evtType) || []
     !this.listenerMap.has(evtType) && this.listenerMap.set(evtType, list)
     return list
-  }
-
-  private listenerWrap(type: string, listener: EventListener, once?: boolean) {
-    return (evt: UploadEvent) => {
-      if (evt.type === type) {
-        once && this.off(type, listener)
-        try {
-          listener(...(evt.data || []))
-        } catch (e) {
-          console.error(e)
-        }
-      }
-    }
   }
 }

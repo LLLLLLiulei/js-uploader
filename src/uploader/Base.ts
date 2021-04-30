@@ -181,7 +181,7 @@ export default class Base extends EventEmitter {
     }
     const isFile = typeof files[0] === 'object'
     const ids: string[] = isFile ? (<UploadFile[]>files).map((i) => String(i.id)) : (<ID[]>files).map((i) => String(i))
-    this.removeFileFromFileStore(...ids)
+    // this.removeFileFromFileStore(...ids)
 
     return of(ids)
       .pipe(

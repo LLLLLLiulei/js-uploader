@@ -4,10 +4,17 @@ import type { Stats } from 'fs'
  * 事件类型
  */
 export enum EventType {
+  FileWaiting = 'file-waiting',
   // 文件开始上传
   FileUploadStart = 'file-upload-start',
+  //   文件进度
+  FileProgress = 'file-progress',
+  FilePause = 'file-pause',
+  FilesPause = 'files-pause',
   // 文件上传出错
   FileError = 'file-error',
+  FileCancel = 'file-cancel',
+  FilesCancel = 'files-cancel',
   // 文件上传完成
   FileComplete = 'file-complete',
 

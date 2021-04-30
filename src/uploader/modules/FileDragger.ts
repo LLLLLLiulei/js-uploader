@@ -1,15 +1,16 @@
-import { Observable, fromEvent, from, of, scheduled, asyncScheduler } from 'rxjs'
+import { Observable, fromEvent, from, scheduled, asyncScheduler } from 'rxjs'
 import { tap, mergeMap, concatMap, map, mergeAll } from 'rxjs/operators'
 import { FileDraggerOptions, TPromise, UploaderOptions } from '../../interface'
 import { Logger } from '../../shared'
-import mime from 'mime'
-import { basename, normalize, relative, join, dirname } from 'path'
+import { getType as getMimeType } from 'mime'
+import { basename, relative, join, dirname } from 'path'
 
 export class FileDragger {
   $el: HTMLElement
   file$: Observable<File[]>
 
   constructor(options: FileDraggerOptions, private uploadOptions?: UploaderOptions) {
+    console.log('🚀 ~ file: FileDragger.ts ~ line 13 ~ FileDragger ~ constructor ~ uploadOptions', this.uploadOptions)
     const { $el, onDragover, onDragenter, onDragleave, onDrop } = options
     if (!$el) {
       throw new Error()
@@ -39,8 +40,8 @@ export class FileDragger {
       return Promise.resolve([])
     }
     Logger.info('parseDataTransfer', dataTransfer.files.length, dataTransfer.items.length)
-    const fileStat = this.uploadOptions?.fileStatFn
-    const readdir = this.uploadOptions?.readdirFn
+    // const fileStat = this.uploadOptions?.fileStatFn
+    // const readdir = this.uploadOptions?.readdirFn
     // if (isElectron() && typeof fileStat === 'function' && typeof readdir === 'function') {
     //   return parseFilesByPath(dataTransfer, fileStat, readdir)
     // }
@@ -52,7 +53,7 @@ export class FileDragger {
   }
 }
 
-async function parseFilesByPath(
+export async function parseFilesByPath(
   dataTransfer: DataTransfer,
   fileStat: NonNullable<UploaderOptions['fileStatFn']>,
   readdir: NonNullable<UploaderOptions['readdirFn']>,
@@ -76,7 +77,7 @@ async function parseFilesByPath(
         lastModified: stat.mtimeMs,
         name,
         size: stat.size,
-        type: mime.getType(filePath),
+        type: getMimeType(filePath),
         path: filePath,
         relativePath: rootDir ? relative(rootDir, filePath) : name,
       }
@@ -84,7 +85,7 @@ async function parseFilesByPath(
       list.push((file as unknown) as File)
     } else if (stat?.isDirectory()) {
       const children = await toPromise(readdir(filePath))
-      await scheduled(children, asyncScheduler)
+      await scheduled(children || [], asyncScheduler)
         .pipe(concatMap((name) => from(loop(join(filePath, name)))))
         .toPromise()
 
@@ -104,9 +105,9 @@ async function parseFilesByPath(
   return list
 }
 
-function toObserverble<T>(input: TPromise<T>): Observable<T> {
-  return input && input instanceof Promise ? from(input) : of(input)
-}
+// function toObserverble<T>(input: TPromise<T>): Observable<T> {
+//   return input && input instanceof Promise ? from(input) : of(input)
+// }
 
 function toPromise<T>(input: TPromise<T>): Promise<T> {
   return input && input instanceof Promise ? input : Promise.resolve(input)
@@ -129,9 +130,11 @@ async function webkitGetAsEntryApi(dataTransfer: DataTransfer): Promise<any[]> {
         )
       } else if (entry.isDirectory) {
         let entries = await parseDir(entry.createReader(), [])
-        scheduled(entries, asyncScheduler).pipe(map(createPromiseToAddFileOrParseDirectory), mergeAll()).subscribe({
-          complete: resolve,
-        })
+        scheduled(entries || [], asyncScheduler)
+          .pipe(map(createPromiseToAddFileOrParseDirectory), mergeAll())
+          .subscribe({
+            complete: resolve,
+          })
       }
     })
   }

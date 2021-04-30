@@ -1,7 +1,7 @@
 import { TPromise, UploadFile } from '../../interface'
 
 export const fileReader = (uploadfile: UploadFile, start?: number, end?: number): TPromise<Blob> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let raw: Nullable<Blob> = uploadfile.raw
     start = start || 0
     end = end || uploadfile.size

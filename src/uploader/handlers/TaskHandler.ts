@@ -21,6 +21,8 @@ export abstract class TaskHandler extends Base {
   abstract resume(): this
   abstract retry(): this
   abstract abort(): this
+  abstract abortFile(...files: UploadFile[]): this
+  abstract pauseFile(...files: UploadFile[]): this
 
   protected computeFileHash(file: Blob | ArrayBuffer): Observable<string> {
     return new Observable((ob: Subscriber<string>) => {
