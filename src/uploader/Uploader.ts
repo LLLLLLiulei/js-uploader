@@ -33,7 +33,6 @@ import Base from './Base'
 import { isElectron } from '../utils'
 import { taskFactory, fileFactory } from './helpers'
 import { Logger } from '../shared'
-import { async } from 'rxjs/internal/scheduler/async'
 
 const defaultOptions: UploaderOptions = {
   requestOptions: {

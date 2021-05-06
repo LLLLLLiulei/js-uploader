@@ -206,7 +206,10 @@ export class CommonsTaskHandler extends TaskHandler {
           this.changeUplotaTaskStatus(this.task, StatusCode.Complete)
           this.emit(EventType.TaskComplete, this.task)
           this.removeTaskFromStroage(this.task)
-        } else if (this.task.fileList.some((i) => i.status === StatusCode.Pause || i.status === StatusCode.Error)) {
+        } else if (this.task.fileList.some((i) => i.status === StatusCode.Error)) {
+          this.changeUplotaTaskStatus(this.task, StatusCode.Error)
+          this.emit(EventType.TaskPause, this.task)
+        } else if (this.task.fileList.some((i) => i.status === StatusCode.Pause)) {
           this.changeUplotaTaskStatus(this.task, StatusCode.Pause)
           this.emit(EventType.TaskPause, this.task)
         }
@@ -218,7 +221,7 @@ export class CommonsTaskHandler extends TaskHandler {
     return this
   }
 
-  private handle1(uploadFiles?: UploadFile[]) {
+  protected handle1(uploadFiles?: UploadFile[]) {
     if (!this.upload$) {
       this.upload$ = of(this.task).pipe(
         switchMap((task: UploadTask) => {

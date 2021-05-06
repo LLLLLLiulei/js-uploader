@@ -45,7 +45,7 @@ export default class Base extends EventEmitter {
     chunk && this.presistChunkOnly(chunk)
   }
 
-  protected presistChunkOnly(...chunks: FileChunk[]): Promise<void> {
+  public presistChunkOnly(...chunks: FileChunk[]): Promise<void> {
     const items = chunks?.map((chunk: FileChunk) => ({
       key: String(chunk.id),
       value: Object.assign({}, chunk, { data: null }),
@@ -59,7 +59,7 @@ export default class Base extends EventEmitter {
       .toPromise()
   }
 
-  protected presistFileOnly(...files: UploadFile[]): Promise<void> {
+  public presistFileOnly(...files: UploadFile[]): Promise<void> {
     const items = files?.map((file: UploadFile) => ({
       key: String(file.id),
       value: Object.assign({}, file, { raw: null, chunkList: null }),
@@ -73,7 +73,7 @@ export default class Base extends EventEmitter {
       .toPromise()
   }
 
-  protected presistTaskOnly(...tasks: UploadTask[]): Promise<void> {
+  public presistTaskOnly(...tasks: UploadTask[]): Promise<void> {
     const items = tasks?.map((task: UploadTask) => ({
       key: String(task.id),
       value: Object.assign({}, task, { fileList: null }),
