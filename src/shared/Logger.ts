@@ -96,10 +96,10 @@ export class ContextLogger {
 export class Logger {
   private static contextMap = new Map<string, ContextLogger>()
   private static defaultLevel = Level.debug
-  private static outputLogger = new ContextLogger('rx-uploader', Logger.defaultLevel, (name, _, message) => {
+  private static outputLogger = new ContextLogger('rx-uploader', Logger.defaultLevel, (name, _, ...message) => {
     const current = new Date()
     const prefix = name ? `[${name}] ` : ''
-    return [`${prefix} ${current.toLocaleString()}: \r\n`, message]
+    return [`${prefix} ${current.toLocaleString()}: \r\n`, ...message]
   })
 
   static get(name: string, formatter?: Formatter, level?: Level, adapter: LoggerAdapter = console) {

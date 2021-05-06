@@ -108,7 +108,7 @@ export default class Base extends EventEmitter {
     return RxStorage.BinaryLike.setItem(key, blob).toPromise()
   }
 
-  protected presistTaskWithoutBlob(tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
+  public presistTaskWithoutBlob(tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
     Logger.info('Uploader -> presistTask -> tasks', tasks)
     const tryTakeUntil = () => takeUntil(nofication$ || NEVER)
 
@@ -139,7 +139,7 @@ export default class Base extends EventEmitter {
     return forkJoin(job$).pipe(mapTo(tasks))
   }
 
-  protected presistTask(tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
+  public presistTask(tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
     Logger.info('Uploader -> presistTask -> tasks', tasks)
     const tryTakeUntil = () => takeUntil(nofication$ || NEVER)
 

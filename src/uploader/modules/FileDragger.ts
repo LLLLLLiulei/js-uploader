@@ -4,13 +4,13 @@ import { FileDraggerOptions, TPromise, UploaderOptions } from '../../interface'
 import { Logger } from '../../shared'
 import { getType as getMimeType } from 'mime'
 import { basename, relative, join, dirname } from 'path'
+import { isElectron } from '../..'
 
 export class FileDragger {
   $el: HTMLElement
   file$: Observable<File[]>
 
   constructor(options: FileDraggerOptions, private uploadOptions?: UploaderOptions) {
-    console.log('🚀 ~ file: FileDragger.ts ~ line 13 ~ FileDragger ~ constructor ~ uploadOptions', this.uploadOptions)
     const { $el, onDragover, onDragenter, onDragleave, onDrop } = options
     if (!$el) {
       throw new Error()
@@ -40,11 +40,11 @@ export class FileDragger {
       return Promise.resolve([])
     }
     Logger.info('parseDataTransfer', dataTransfer.files.length, dataTransfer.items.length)
-    // const fileStat = this.uploadOptions?.fileStatFn
-    // const readdir = this.uploadOptions?.readdirFn
-    // if (isElectron() && typeof fileStat === 'function' && typeof readdir === 'function') {
-    //   return parseFilesByPath(dataTransfer, fileStat, readdir)
-    // }
+    const fileStat = this.uploadOptions?.fileStatFn
+    const readdir = this.uploadOptions?.readdirFn
+    if (isElectron() && typeof fileStat === 'function' && typeof readdir === 'function') {
+      return parseFilesByPath(dataTransfer, fileStat, readdir)
+    }
     if (dataTransfer.items?.length && typeof dataTransfer.items[0].webkitGetAsEntry === 'function') {
       return webkitGetAsEntryApi(dataTransfer)
     } else {
@@ -81,7 +81,6 @@ export async function parseFilesByPath(
         path: filePath,
         relativePath: rootDir ? relative(rootDir, filePath) : name,
       }
-      console.log('🚀 ~ file: FileDragger.ts ~ line 84 ~ loop ~ file', file)
       list.push((file as unknown) as File)
     } else if (stat?.isDirectory()) {
       const children = await toPromise(readdir(filePath))
@@ -100,7 +99,6 @@ export async function parseFilesByPath(
       return await loop(file.path)
     }),
   )
-  console.log('🚀 ~ file: FileDragger.ts ~ line 107 ~ list', list)
   console.timeEnd('parseFilesByPath')
   return list
 }

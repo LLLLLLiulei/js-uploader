@@ -97,7 +97,18 @@ export class CommonsTaskHandler extends TaskHandler {
   }
 
   retry(): this {
-    this.handle().emit(EventType.TaskRetry, this.task)
+    let errorFiles = this.task.fileList?.filter((i) => i.status === StatusCode.Error) || []
+
+    scheduled(errorFiles, asyncScheduler).subscribe({
+      next: (file) => {
+        this.changeUploadFileStatus(file, StatusCode.Pause)
+        this.emit(EventType.FilePause, this.task, file)
+      },
+      complete: () => {
+        this.handle().emit(EventType.TaskRetry, this.task)
+      },
+    })
+
     return this
   }
 
@@ -205,14 +216,15 @@ export class CommonsTaskHandler extends TaskHandler {
         if (this.task.fileList.every((i) => i.status === StatusCode.Complete)) {
           this.changeUplotaTaskStatus(this.task, StatusCode.Complete)
           this.emit(EventType.TaskComplete, this.task)
-          this.removeTaskFromStroage(this.task)
+          //   this.removeTaskFromStroage(this.task)
         } else if (this.task.fileList.some((i) => i.status === StatusCode.Error)) {
           this.changeUplotaTaskStatus(this.task, StatusCode.Error)
-          this.emit(EventType.TaskPause, this.task)
+          this.emit(EventType.TaskError, this.task)
         } else if (this.task.fileList.some((i) => i.status === StatusCode.Pause)) {
           this.changeUplotaTaskStatus(this.task, StatusCode.Pause)
           this.emit(EventType.TaskPause, this.task)
         }
+        this.uploaderOptions.resumable && this.presistTaskOnly(this.task)
         from(this.fileSubscriptionInfoMap.values()).subscribe((subscriber) => subscriber.unsubscribe())
       },
     })
@@ -341,15 +353,15 @@ export class CommonsTaskHandler extends TaskHandler {
         }
         return !isComplete
       }),
-      filter((uploadFile: UploadFile) => {
-        // 根据配置 跳过出错的文件
-        const skip: boolean = uploadFile.status === StatusCode.Error && !!this.uploaderOptions.skipFileWhenUploadError
-        if (skip) {
-          pocessed.push(uploadFile.id)
-          Logger.warn(`skip file,status:${uploadFile.status}`, uploadFile.name)
-        }
-        return !skip
-      }),
+      //   filter((uploadFile: UploadFile) => {
+      //     // 根据配置 跳过出错的文件
+      //     const skip: boolean = uploadFile.status === StatusCode.Error && !!this.uploaderOptions.skipFileWhenUploadError
+      //     if (skip) {
+      //       pocessed.push(uploadFile.id)
+      //       Logger.warn(`skip file,status:${uploadFile.status}`, uploadFile.name)
+      //     }
+      //     return !skip
+      //   }),
       tap((uploadFile: UploadFile) => {
         this.changeUploadFileStatus(uploadFile, StatusCode.Waiting)
         this.emit(EventType.FileWaiting, this.task, uploadFile)
@@ -391,14 +403,14 @@ export class CommonsTaskHandler extends TaskHandler {
         }
         return !isComplete
       }),
-      filter((uploadFile: UploadFile) => {
-        // 根据配置 跳过出错的文件
-        const skip: boolean = uploadFile.status === StatusCode.Error && !!this.uploaderOptions.skipFileWhenUploadError
-        if (skip) {
-          Logger.warn(`skip file,status:${uploadFile.status}`, uploadFile.name)
-        }
-        return !skip
-      }),
+      //   filter((uploadFile: UploadFile) => {
+      //     // 根据配置 跳过出错的文件
+      //     const skip: boolean = uploadFile.status === StatusCode.Error && !!this.uploaderOptions.skipFileWhenUploadError
+      //     if (skip) {
+      //       Logger.warn(`skip file,status:${uploadFile.status}`, uploadFile.name)
+      //     }
+      //     return !skip
+      //   }),
       tap((uploadFile: UploadFile) => {
         this.changeUploadFileStatus(uploadFile, StatusCode.Waiting)
         this.emit(EventType.FileWaiting, this.task, uploadFile)
@@ -501,7 +513,7 @@ export class CommonsTaskHandler extends TaskHandler {
         // 文件上传错误事件
         this.changeUploadFileStatus(uploadFile, StatusCode.Error)
         this.emit(EventType.FileError, this.task, uploadFile, e)
-
+        this.presistFileOnly(uploadFile)
         // 错误处理 判断是否需要过滤该文件
         if (!uploaderOptions.skipFileWhenUploadError) {
           return throwError(e)
@@ -520,6 +532,7 @@ export class CommonsTaskHandler extends TaskHandler {
           this.changeUploadFileStatus(uploadFile, StatusCode.Complete)
           this.emit(EventType.FileComplete, this.task, uploadFile, chunkResponses)
         }
+        this.presistFileOnly(uploadFile)
       }),
       takeUntil(
         this.subject.pipe(
@@ -727,6 +740,7 @@ export class CommonsTaskHandler extends TaskHandler {
         chunkList[chunk.index].uploaded = chunk.uploaded = chunkLoaded
         chunk.progress = Math.max(Math.round((chunkLoaded / chunkSize) * 100), chunk.progress || 0)
 
+        let fileLastProgress = file.progress
         let fileUploaded: number = chunkList.reduce(reduceFn, 0) || 0
         let fileProgress: number = Math.round((fileUploaded / file.size) * 100)
         fileProgress = Math.max(Math.min(fileProgress, 100), file.progress || 0)
@@ -734,8 +748,11 @@ export class CommonsTaskHandler extends TaskHandler {
         file.progress = fileProgress
         this.emit(EventType.FileProgress, this.task, file, file.progress)
 
-        let taskLastProgress = this.task.progress
+        if (this.isResumable() && file.progress > fileLastProgress) {
+          scheduleWork(() => this.presistFileOnly(file))
+        }
 
+        let taskLastProgress = this.task.progress
         let taskProgress = this.task.progress
         let taskUploaded = this.task.fileList.reduce(reduceFn, 0) || 0
         if (this.task.fileIDList?.length === 1) {

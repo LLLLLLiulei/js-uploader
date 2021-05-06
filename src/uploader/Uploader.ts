@@ -106,6 +106,7 @@ export class Uploader extends Base {
   upload(task?: UploadTask, action?: 'resume' | 'retry'): void {
     if (!this.uploadSubscription || this.uploadSubscription?.closed) {
       const filteredTaskStatus = [StatusCode.Waiting, StatusCode.Uploading, StatusCode.Complete]
+
       this.upload$ = this.taskSubject.pipe(
         filter((task: UploadTask) => {
           return !filteredTaskStatus.includes(task.status as StatusCode)
@@ -115,7 +116,9 @@ export class Uploader extends Base {
           this.changeUploadTaskStatus(task, StatusCode.Waiting)
           this.emit(EventType.TaskWaiting, task)
         }),
-        mergeMap((task: UploadTask) => this.executeForResult(task, action), this.options.taskConcurrency || 1),
+        mergeMap((task: UploadTask) => {
+          return this.executeForResult(task, action)
+        }, this.options.taskConcurrency || 1),
       )
 
       this.uploadSubscription?.unsubscribe()
@@ -380,27 +383,22 @@ export class Uploader extends Base {
 
   private async restoreTask(): Promise<UploadTask[]> {
     const taskList: UploadTask[] = await RxStorage.UploadTask.values().toPromise()
-    console.log('🚀 ~ file: Uploader.ts ~ line 355 ~ Uploader ~ restoreTask ~ taskList', taskList)
 
     return scheduled(taskList || [], asyncScheduler)
       .pipe(
         tap((task) => {
-          if (task.status === StatusCode.Complete) {
-            this.removeTaskFromStroage(task)
-          } else {
+          if (task.status !== StatusCode.Complete) {
             task.status = task.status === StatusCode.Error ? task.status : StatusCode.Pause
             task.progress = task.progress >= 100 ? 99 : task.progress
-            this.taskQueue.push(task)
-            this.options.autoUpload && this.upload(task)
-            // 任务恢复事件
-            this.emit(EventType.TaskRestore, task)
           }
+
+          this.taskQueue.push(task)
+          this.options.autoUpload && this.upload(task)
+          // 任务恢复事件
+          this.emit(EventType.TaskRestore, task)
         }),
         last(),
         mapTo(taskList),
-        tap((tasks) => {
-          console.log('restoreTask', tasks)
-        }),
         takeUntil(this.clear$),
       )
       .toPromise()
@@ -534,12 +532,10 @@ export class Uploader extends Base {
 
       const resolveTasks = (tasks: UploadTask[]) => {
         resolve(tasks)
-        console.log('🚀 ~ file: Uploader.ts ~ line 470 ~ Uploader ~ tap ~ tasks', tasks)
         this.emit(EventType.TasksAdded, tasks)
       }
 
       const finish = (tasks: UploadTask[]) => {
-        console.log('🚀 ~ file: Uploader.ts ~ line 529 ~ Uploader ~ finish ~ tasks', tasks)
         if (this.options.resumable) {
           let ob$ = isElectron()
             ? this.presistTaskWithoutBlob(tasks, this.clear$)
@@ -577,22 +573,11 @@ export class Uploader extends Base {
             return !!accept
           }),
           bufferCount(1000),
-          tap(() => {
-            console.time('1111111111111111')
-          }),
-          tap(() => {
-            console.time('2222222222222222')
-          }),
+
           map((files) => {
             return files.map(fileFactory)
           }),
-          tap(() => {
-            console.timeEnd('2222222222222222')
-          }),
           concatMap((files: UploadFile[]) => this.generateTask(...files)),
-          tap(() => {
-            console.timeEnd('1111111111111111')
-          }),
           tap((data) => data?.forEach((i) => i && tasks.add(i))),
         )
         .subscribe({

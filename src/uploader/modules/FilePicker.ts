@@ -26,9 +26,6 @@ export class FilePicker {
     this.setInputAttr(multiple, directory, accept)
 
     this.file$ = fromEvent(this.$el, 'change').pipe(
-      tap((e: Event) => {
-        console.log(e)
-      }),
       delayWhen(() => from(new Promise(setTimeout as any))),
       filter(() => !!this.$el.files?.length),
       //   mergeMap(() => from(reduceFile())),
