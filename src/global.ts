@@ -8,8 +8,6 @@ declare interface Window {
   SparkMD5: SparkMD5
 }
 
-declare type Nullable<T> = T | null
-
 type JsArrayBuffer = ArrayBuffer
 
 declare class SparkMD5 {
@@ -48,4 +46,4 @@ declare namespace SparkMD5 {
   }
 }
 
-declare type Noop = (...args: any[]) => any
+declare type Nullable<T> = T | null

@@ -463,21 +463,7 @@ export class Uploader extends Base {
     if (obs.length) {
       this.subscription.add(
         merge(...obs)
-          .pipe(
-            concatMap((files: File[]) => {
-              return of(files).pipe(
-                concatMap((files: File[]) => {
-                  // 选择文件后添加文件前hook
-                  const beforeAdd = this.hookWrap(this.options.beforeFilesAdd?.(files))
-                  return from(beforeAdd).pipe(mapTo(files))
-                }),
-                concatMap((files: File[]) => {
-                  return from(this.addFilesAsync(...files)).pipe(map((tasks) => ({ files, tasks })))
-                }),
-                takeUntil(this.clear$),
-              )
-            }),
-          )
+          .pipe(concatMap((files: File[]) => this.add(files)))
           .subscribe(),
       )
     }
@@ -489,46 +475,23 @@ export class Uploader extends Base {
     })
   }
 
-  addFiles(...files: Array<File>): Promise<UploadTask[]> {
-    return new Promise((resolve, reject) => {
-      Logger.info('Uploader -> addFile -> files', files)
-      if (!files?.length) {
-        return resolve([])
-      }
-      const filelist: UploadFile[] = []
-      const { fileFilter } = this.options
-      files.forEach((file) => {
-        let ignored = false
-        let fileName = file.name
-        if (fileFilter instanceof RegExp) {
-          ignored = !fileFilter.test(fileName)
-        } else if (typeof fileFilter === 'function') {
-          ignored = !fileFilter(fileName, file)
-        }
-        !ignored && filelist.push(fileFactory(file))
-      })
-      Logger.info('Uploader -> addFile -> filelist', filelist)
-      this.generateTask(...filelist)
-        .toPromise()
-        .then((tasks) => {
-          Logger.info(this.taskQueue)
-          const resolveTask = (tasks: UploadTask[]) => {
-            resolve(tasks)
-          }
-          this.options.resumable
-            ? this.presistTask(tasks).subscribe(() => resolveTask(tasks), reject)
-            : resolveTask(tasks)
-        })
-    })
+  add(files: File[]) {
+    return of(files).pipe(
+      concatMap((files: File[]) => {
+        // 选择文件后添加文件前hook
+        const beforeAdd = this.hookWrap(this.options.beforeFilesAdd?.(files))
+        return from(beforeAdd).pipe(mapTo(files))
+      }),
+      concatMap((files: File[]) => {
+        return from(this.addFilesAsync(...files)).pipe(map((tasks) => ({ files, tasks })))
+      }),
+      takeUntil(this.clear$),
+    )
   }
 
   addFilesAsync(...files: Array<File>): Promise<UploadTask[]> {
     return new Promise((resolve, reject) => {
       Logger.info('Uploader -> addFile -> files', files)
-      console.time('addFilesAsync')
-      if (!files?.length) {
-        return resolve([])
-      }
 
       const resolveTasks = (tasks: UploadTask[]) => {
         resolve(tasks)
@@ -558,6 +521,12 @@ export class Uploader extends Base {
         }
       }
 
+      if (!files.length) {
+        resolveTasks([])
+        return
+      }
+
+      console.time('addFilesAsync')
       const { fileFilter } = this.options
       const tasks: Set<UploadTask> = new Set()
 
@@ -640,10 +609,17 @@ export class Uploader extends Base {
               }
 
               if (existsTask) {
-                existsTask.fileIDList.push(file.id)
-                existsTask.fileList.push(file)
-                existsTask.fileSize += file.size
-                updateTasks.add(existsTask)
+                let existsFile = existsTask.fileIDList.find(
+                  (id) => FileStore.get(id)?.relativePath === file.relativePath,
+                )
+                if (!existsFile) {
+                  existsTask.fileIDList.push(file.id)
+                  existsTask.fileList.push(file)
+                  existsTask.fileSize += file.size
+                  updateTasks.add(existsTask)
+                } else {
+                  Logger.info('existsTask:', existsTask, 'existsFile:', existsFile)
+                }
               } else {
                 newTask = taskFactory(file, singleFileTask)
               }

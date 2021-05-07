@@ -5,7 +5,6 @@ import { QiniuOSSTaskHandler } from './QiniuOSSTaskHandler'
 import { TaskHandler } from './TaskHandler'
 
 export function handle(task: UploadTask, uploaderOptions: UploaderOptions): TaskHandler {
-  console.log('🚀 ~ file: index.ts ~ line 7 ~ handle ~ task', task)
   const { ossOptions } = uploaderOptions
   if (ossOptions?.enable) {
     switch (ossOptions?.provider) {
