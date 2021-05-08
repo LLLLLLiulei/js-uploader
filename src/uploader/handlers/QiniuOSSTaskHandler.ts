@@ -122,7 +122,12 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
             'Content-Type': 'text/plain',
             Authorization: `UpToken ${extraInfo.uptoken || ''}`,
           }
-          const body = file.chunkList?.map((ck: FileChunk) => ck.response?.ctx).join()
+          const body = file.chunkList
+            ?.map((ck: FileChunk) => {
+              let response = typeof ck.response === 'string' ? JSON.parse(ck.response) : ck.response
+              return response?.ctx
+            })
+            .join()
           return ajax.post(url, body, headers).pipe(
             tap((res: AjaxResponse) => {
               file.response = res.response
