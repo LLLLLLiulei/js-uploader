@@ -79,6 +79,11 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
           return beforeFileUploadStart?.(task, upFile) || Promise.resolve()
         }
 
+        let { ossOptions } = uploaderOptions
+        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.Qiniu) {
+          return beforeUpload()
+        }
+
         const getUpToken = () => {
           const uptoken = uploaderOptions.ossOptions?.uptokenGenerator?.(upFile, task) || Promise.resolve('')
           return this.toObserverble(uptoken).pipe(
@@ -115,6 +120,12 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
       },
       overwriteBeforeFileUploadComplete: (task: UploadTask, file: UploadFile) => {
         const beforeFileComplete = () => beforeFileUploadComplete?.(task, file) || Promise.resolve()
+
+        let { ossOptions } = uploaderOptions
+        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.Qiniu) {
+          return beforeFileComplete()
+        }
+
         const mergeFileRequest = (): Observable<AjaxResponse> => {
           const extraInfo: FileExtraInfo = this.getFileExtraInfo(file)
           const url = this.getMakeFileUrl(extraInfo.host || '', file.size, file.extraInfo?.key)

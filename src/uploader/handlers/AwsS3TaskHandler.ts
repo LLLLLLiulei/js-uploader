@@ -154,6 +154,11 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
           return beforeFileUploadStart?.(task, upFile) || Promise.resolve()
         }
 
+        let { ossOptions } = uploaderOptions
+        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.S3) {
+          return beforeUpload()
+        }
+
         const getObjectKey = () => {
           const objectKey = uploaderOptions.ossOptions?.keyGenerator?.(upFile, task) || Promise.resolve('')
           return this.toObserverble(objectKey).pipe(
@@ -174,6 +179,12 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
       },
       overwriteBeforeFileUploadComplete: (task: UploadTask, file: UploadFile) => {
         const beforeFileComplete = () => beforeFileUploadComplete?.(task, file) || Promise.resolve()
+
+        let { ossOptions } = uploaderOptions
+        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.S3) {
+          return beforeFileComplete()
+        }
+
         const completeMultipartUpload = () => {
           if (file.response.etag) {
             return of(file.response)
@@ -201,6 +212,11 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
         chunk: FileChunk,
         response: AjaxResponse,
       ) => {
+        let { ossOptions } = uploaderOptions
+        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.S3) {
+          return Promise.resolve()
+        }
+
         let etag = response.xhr.getResponseHeader('etag')?.replace(/['"]/g, '') || ''
         response.response = { etag }
         return beforeUploadResponseProcess?.(task, file, chunk, response) || Promise.resolve()
