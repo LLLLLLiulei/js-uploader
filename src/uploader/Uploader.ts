@@ -28,6 +28,7 @@ import {
   Subscriber,
   asapScheduler,
   asyncScheduler,
+  iif,
 } from 'rxjs'
 import Base from './Base'
 import { isElectron } from '../utils'
@@ -149,10 +150,12 @@ export class Uploader extends Base {
     let handler: Nullable<TaskHandler>
     return of(task).pipe(
       filter((task) => task.status === StatusCode.Waiting),
-      tap(() => {
-        handler = this.rebindTaskHandlerEvent(this.getTaskHandler(task))
+      concatMap(() => this.getTaskHandler(task)),
+      tap((handler) => {
+        handler = this.rebindTaskHandlerEvent(handler)
         action === 'resume' ? handler.resume() : action === 'retry' ? handler.retry() : handler.handle()
       }),
+      mapTo(task),
       switchMap((task) =>
         race(
           fromEvent(handler!, EventType.TaskPause).pipe(
@@ -208,9 +211,10 @@ export class Uploader extends Base {
     }
     let tasks = task ? [task] : this.taskQueue
 
+    let filteredStatus = [StatusCode.Pause, StatusCode.Complete, StatusCode.Error]
     from(tasks)
       .pipe(
-        filter((tsk: UploadTask) => tsk.status !== StatusCode.Pause && tsk.status !== StatusCode.Complete),
+        filter((tsk: UploadTask) => !filteredStatus.includes(tsk.status)),
         tap((tsk) => fn(tsk)),
       )
       .subscribe({
@@ -332,10 +336,16 @@ export class Uploader extends Base {
     return handler
   }
 
-  private getTaskHandler(task: UploadTask): TaskHandler {
-    const handler: TaskHandler = this.taskHandlerMap.get(task.id) || handleTask(task, this.options)
-    this.taskHandlerMap.set(task.id, handler)
-    return handler
+  private getTaskHandler(task: UploadTask): Observable<TaskHandler> {
+    return iif(
+      () => this.taskHandlerMap.has(task.id),
+      of(this.taskHandlerMap.get(task.id)!),
+      handleTask(task, this.options),
+    ).pipe(
+      tap((handler) => {
+        this.taskHandlerMap.set(task.id, handler)
+      }),
+    )
   }
 
   private freeHandler(task: UploadTask): void {

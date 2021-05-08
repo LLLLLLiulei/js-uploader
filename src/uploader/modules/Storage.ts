@@ -3,29 +3,34 @@ import { FileChunk, ID, UploadFile, UploadTask } from '../../interface'
 
 class RxIDB extends IDB {
   static readonly dbPrefix = 'js-uploader'
-  readonly UploadTask: IDB<ID, UploadTask> = IDB.createInstance<ID, UploadTask>(RxIDB.dbPrefix + '_task')
-  readonly UploadFile: IDB<ID, UploadFile> = IDB.createInstance<ID, UploadFile>(RxIDB.dbPrefix + '_file')
-  readonly FileChunk: IDB<ID, FileChunk> = IDB.createInstance<ID, FileChunk>(RxIDB.dbPrefix + '_chunk')
-  readonly BinaryLike: IDB<ID> = IDB.createInstance<ID>(RxIDB.dbPrefix + '_binary')
+  readonly UploadTask: IDB<ID, UploadTask>
+  readonly UploadFile: IDB<ID, UploadFile>
+  readonly FileChunk: IDB<ID, FileChunk>
+  readonly BinaryLike: IDB<ID>
 
-  constructor() {
-    super(RxIDB.dbPrefix + '_public')
+  constructor(id?: string) {
+    const prefix = id ? `${RxIDB.dbPrefix}_${id}` : RxIDB.dbPrefix
+    super(prefix + '_public')
+
+    this.UploadTask = IDB.createInstance<ID, UploadTask>(prefix + '_task')
+    this.UploadFile = IDB.createInstance<ID, UploadFile>(prefix + '_file')
+    this.FileChunk = IDB.createInstance<ID, FileChunk>(prefix + '_chunk')
+    this.BinaryLike = IDB.createInstance<ID>(prefix + '_binary')
   }
 }
 
-// class RxIDB extends IDB {
-//   static readonly dbPrefix = 'js-uploader'
-//   readonly UploadTask: IDB<ID, UploadTask> = IDB.createInstance<ID, UploadTask>(RxIDB.dbPrefix, 'upload-task')
-//   readonly UploadFile: IDB<ID, UploadFile> = IDB.createInstance<ID, UploadFile>(RxIDB.dbPrefix, 'upload-file')
-//   readonly FileChunk: IDB<ID, FileChunk> = IDB.createInstance<ID, FileChunk>(RxIDB.dbPrefix, 'file-chunk')
-//   readonly BinaryLike: IDB<ID> = IDB.createInstance<ID>(RxIDB.dbPrefix, 'binary')
-
-//   constructor() {
-//     super(RxIDB.dbPrefix, 'public')
-//   }
-// }
+const storageMap = new Map<string, RxIDB>()
 
 export const RxStorage = new RxIDB()
 
-// test
-Object.assign(window, { RxStorage, IDB })
+export const getStorage = (id?: string) => {
+  if (!id) {
+    return RxStorage
+  }
+  if (storageMap.has(id)) {
+    return storageMap.get(id)
+  }
+  let storage = new RxIDB(id)
+  storageMap.set(id, storage)
+  return storage
+}

@@ -237,7 +237,7 @@ export type DragEventHandler = (event: DragEvent) => void
 
 export type MaybePromise = Promise<any> | void
 export interface OssOptions {
-  enable: boolean
+  enable: (task: UploadTask) => TPromise<boolean>
   provider?: Nullable<OSSProvider>
   s3Config?: S3Config | (() => TPromise<S3Config>)
   keyGenerator?: (file: UploadFile, task: UploadTask) => TPromise<string>
