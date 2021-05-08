@@ -35,6 +35,11 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
     !QiniuOSSTaskHandler._overwrite && this.processUploaderOptions()
   }
 
+  private enable() {
+    const { ossOptions } = this.uploaderOptions
+    return ossOptions?.enable(this.task) && ossOptions.provider === OSSProvider.Qiniu
+  }
+
   private processUploaderOptions() {
     Logger.warn('QiniuOSSTaskHandler -> processUploaderOptions -> processUploaderOptions', this)
     const { uploaderOptions } = this
@@ -44,18 +49,33 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
       throw new Error('ossOptions配置错误！')
     }
 
+    let { requestOptions, requestBodyProcessFn } = uploaderOptions
+    let { headers, url } = requestOptions
+
     uploaderOptions.chunkSize = this.chunkSize
-    uploaderOptions.requestOptions.url = (_task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
-      return this.getUploadBlockUrl(this.getFileExtraInfo(upfile).host || '', chunk.size || this.chunkSize)
-    }
-    uploaderOptions.requestOptions.headers = (_task: UploadTask, upfile: UploadFile) => {
-      return {
-        'Content-Type': 'application/octet-stream',
-        Authorization: `UpToken ${this.getFileExtraInfo(upfile).uptoken || ''}`,
+    uploaderOptions.requestOptions.url = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      if (this.enable()) {
+        return this.getUploadBlockUrl(this.getFileExtraInfo(upfile).host || '', chunk.size || this.chunkSize)
+      } else {
+        return this.createObserverble(url, task, upfile, chunk).toPromise()
       }
     }
-    uploaderOptions.requestBodyProcessFn = (_task: UploadTask, _upfile: UploadFile, _chunk: FileChunk, params: Obj) => {
-      return params.file
+    uploaderOptions.requestOptions.headers = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      if (this.enable()) {
+        return {
+          'Content-Type': 'application/octet-stream',
+          Authorization: `UpToken ${this.getFileExtraInfo(upfile).uptoken || ''}`,
+        }
+      } else {
+        return this.createObserverble(headers, task, upfile, chunk).toPromise()
+      }
+    }
+    uploaderOptions.requestBodyProcessFn = (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => {
+      if (this.enable()) {
+        return params.file
+      } else {
+        return requestBodyProcessFn?.(task, upfile, chunk, params)
+      }
     }
 
     const overwriteFns = this.getOverwriteFns()
@@ -79,8 +99,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
           return beforeFileUploadStart?.(task, upFile) || Promise.resolve()
         }
 
-        let { ossOptions } = uploaderOptions
-        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.Qiniu) {
+        if (!this.enable()) {
           return beforeUpload()
         }
 
@@ -121,8 +140,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
       overwriteBeforeFileUploadComplete: (task: UploadTask, file: UploadFile) => {
         const beforeFileComplete = () => beforeFileUploadComplete?.(task, file) || Promise.resolve()
 
-        let { ossOptions } = uploaderOptions
-        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.Qiniu) {
+        if (!this.enable()) {
           return beforeFileComplete()
         }
 

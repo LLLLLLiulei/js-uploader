@@ -56,6 +56,11 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
     !AwsS3TaskHandler._overwrite && this.processUploaderOptions()
   }
 
+  private enable() {
+    const { ossOptions } = this.uploaderOptions
+    return ossOptions?.enable(this.task) && ossOptions.provider === OSSProvider.S3
+  }
+
   abort(): this {
     this.abortTaskFiles()
     super.abort()
@@ -90,11 +95,15 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
     if (!ossOptions?.enable || ossOptions?.provider !== OSSProvider.S3) {
       throw new Error('ossOptions配置错误！')
     }
-    let { chunkSize, chunked } = uploaderOptions
+    let { chunkSize, chunked, requestBodyProcessFn, requestOptions } = uploaderOptions
+    let { url, headers } = requestOptions
     uploaderOptions.chunkSize = chunked ? Math.max(chunkSize || 0, 1024 ** 2 * 5) : chunkSize
     uploaderOptions.requestOptions.method = 'PUT'
     uploaderOptions.requestOptions.responseType = 'text'
-    uploaderOptions.requestOptions.url = (_task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+    uploaderOptions.requestOptions.url = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      if (!this.enable()) {
+        return this.createObserverble(url, task, upfile, chunk).toPromise()
+      }
       return this.getRequestBaseURL()
         .pipe(
           map((baseURL: string) => {
@@ -104,7 +113,10 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
         )
         .toPromise()
     }
-    uploaderOptions.requestOptions.headers = (_task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+    uploaderOptions.requestOptions.headers = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      if (!this.enable()) {
+        return this.createObserverble(headers, task, upfile, chunk).toPromise()
+      }
       return this.getRequestBaseURL()
         .pipe(
           map((baseURL: string) => {
@@ -126,8 +138,12 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
         )
         .toPromise()
     }
-    uploaderOptions.requestBodyProcessFn = (_task: UploadTask, _upfile: UploadFile, _chunk: FileChunk, params: Obj) => {
-      return params.file
+    uploaderOptions.requestBodyProcessFn = (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => {
+      if (this.enable()) {
+        return params.file
+      } else {
+        return requestBodyProcessFn?.(task, upfile, chunk, params)
+      }
     }
 
     const overwriteFns = this.getOverwriteFns()
@@ -154,8 +170,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
           return beforeFileUploadStart?.(task, upFile) || Promise.resolve()
         }
 
-        let { ossOptions } = uploaderOptions
-        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.S3) {
+        if (!this.enable()) {
           return beforeUpload()
         }
 
@@ -180,8 +195,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
       overwriteBeforeFileUploadComplete: (task: UploadTask, file: UploadFile) => {
         const beforeFileComplete = () => beforeFileUploadComplete?.(task, file) || Promise.resolve()
 
-        let { ossOptions } = uploaderOptions
-        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.S3) {
+        if (!this.enable()) {
           return beforeFileComplete()
         }
 
@@ -212,8 +226,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
         chunk: FileChunk,
         response: AjaxResponse,
       ) => {
-        let { ossOptions } = uploaderOptions
-        if (!ossOptions?.enable(task) || ossOptions.provider !== OSSProvider.S3) {
+        if (!this.enable()) {
           return Promise.resolve()
         }
 
