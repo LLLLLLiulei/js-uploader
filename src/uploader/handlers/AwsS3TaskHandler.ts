@@ -56,9 +56,9 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
     !AwsS3TaskHandler._overwrite && this.processUploaderOptions()
   }
 
-  private enable() {
+  private enable(task: UploadTask) {
     const { ossOptions } = this.uploaderOptions
-    return ossOptions?.enable(this.task) && ossOptions.provider === OSSProvider.S3
+    return ossOptions?.enable(task) && ossOptions.provider === OSSProvider.S3
   }
 
   abort(): this {
@@ -101,7 +101,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
     uploaderOptions.requestOptions.method = 'PUT'
     uploaderOptions.requestOptions.responseType = 'text'
     uploaderOptions.requestOptions.url = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
-      if (!this.enable()) {
+      if (!this.enable(task)) {
         return this.createObserverble(url, task, upfile, chunk).toPromise()
       }
       return this.getRequestBaseURL()
@@ -114,7 +114,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
         .toPromise()
     }
     uploaderOptions.requestOptions.headers = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
-      if (!this.enable()) {
+      if (!this.enable(task)) {
         return this.createObserverble(headers, task, upfile, chunk).toPromise()
       }
       return this.getRequestBaseURL()
@@ -139,7 +139,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
         .toPromise()
     }
     uploaderOptions.requestBodyProcessFn = (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => {
-      if (this.enable()) {
+      if (this.enable(task)) {
         return params.file
       } else {
         return requestBodyProcessFn?.(task, upfile, chunk, params)
@@ -170,7 +170,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
           return beforeFileUploadStart?.(task, upFile) || Promise.resolve()
         }
 
-        if (!this.enable()) {
+        if (!this.enable(task)) {
           return beforeUpload()
         }
 
@@ -195,7 +195,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
       overwriteBeforeFileUploadComplete: (task: UploadTask, file: UploadFile) => {
         const beforeFileComplete = () => beforeFileUploadComplete?.(task, file) || Promise.resolve()
 
-        if (!this.enable()) {
+        if (!this.enable(task)) {
           return beforeFileComplete()
         }
 
@@ -226,7 +226,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
         chunk: FileChunk,
         response: AjaxResponse,
       ) => {
-        if (!this.enable()) {
+        if (!this.enable(task)) {
           return Promise.resolve()
         }
 

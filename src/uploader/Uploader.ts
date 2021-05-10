@@ -403,7 +403,9 @@ export class Uploader extends Base {
           }
 
           this.taskQueue.push(task)
-          this.options.autoUpload && this.upload(task)
+          if (this.options.autoUpload && task.status === StatusCode.Pause) {
+            this.upload(task)
+          }
           // 任务恢复事件
           this.emit(EventType.TaskRestore, task)
         }),

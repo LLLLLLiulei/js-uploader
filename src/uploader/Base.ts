@@ -76,7 +76,7 @@ export default class Base extends EventEmitter {
   public presistTaskOnly(...tasks: UploadTask[]): Promise<void> {
     const items = tasks?.map((task: UploadTask) => ({
       key: String(task.id),
-      value: Object.assign({}, task, { fileList: null }),
+      value: Object.assign({}, task, { fileList: [] }),
     }))
 
     return from(items)

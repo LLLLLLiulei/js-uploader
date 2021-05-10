@@ -1,5 +1,5 @@
-import { fromEvent, from, scheduled, asyncScheduler, merge, ConnectableObservable, Subscription } from 'rxjs'
-import { tap, mergeMap, concatMap, map, mergeAll, publishReplay, mapTo, filter } from 'rxjs/operators'
+import { fromEvent, from, scheduled, asyncScheduler, merge, ConnectableObservable, Subscription, of } from 'rxjs'
+import { tap, mergeMap, concatMap, map, mergeAll, publishReplay, mapTo, filter, catchError } from 'rxjs/operators'
 import { FileDraggerOptions, TPromise, UploaderOptions } from '../../interface'
 import { Logger } from '../../shared'
 import { getType as getMimeType } from 'mime'
@@ -75,6 +75,15 @@ export class FileDragger {
           e.stopPropagation()
           e.preventDefault()
         }),
+        concatMap((e) => {
+          let res = this.uploadOptions?.beforeParseDataTransfer?.(e as DragEvent)
+          const before = res instanceof Promise ? res : Promise.resolve(res)
+          return from(before).pipe(
+            mapTo(e),
+            catchError(() => of(null)),
+          )
+        }),
+        filter((e) => !!e),
         mergeMap((e) => {
           return from(parseDataTransfer(e as DragEvent, this.uploadOptions?.fileStatFn, this.uploadOptions?.readdirFn))
         }),

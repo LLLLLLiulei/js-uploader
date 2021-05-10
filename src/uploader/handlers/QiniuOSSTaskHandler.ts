@@ -35,9 +35,9 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
     !QiniuOSSTaskHandler._overwrite && this.processUploaderOptions()
   }
 
-  private enable() {
+  private enable(task: UploadTask) {
     const { ossOptions } = this.uploaderOptions
-    return ossOptions?.enable(this.task) && ossOptions.provider === OSSProvider.Qiniu
+    return ossOptions?.enable(task) && ossOptions.provider === OSSProvider.Qiniu
   }
 
   private processUploaderOptions() {
@@ -54,14 +54,14 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
 
     uploaderOptions.chunkSize = this.chunkSize
     uploaderOptions.requestOptions.url = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
-      if (this.enable()) {
+      if (this.enable(task)) {
         return this.getUploadBlockUrl(this.getFileExtraInfo(upfile).host || '', chunk.size || this.chunkSize)
       } else {
         return this.createObserverble(url, task, upfile, chunk).toPromise()
       }
     }
     uploaderOptions.requestOptions.headers = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
-      if (this.enable()) {
+      if (this.enable(task)) {
         return {
           'Content-Type': 'application/octet-stream',
           Authorization: `UpToken ${this.getFileExtraInfo(upfile).uptoken || ''}`,
@@ -71,7 +71,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
       }
     }
     uploaderOptions.requestBodyProcessFn = (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => {
-      if (this.enable()) {
+      if (this.enable(task)) {
         return params.file
       } else {
         return requestBodyProcessFn?.(task, upfile, chunk, params)
@@ -99,7 +99,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
           return beforeFileUploadStart?.(task, upFile) || Promise.resolve()
         }
 
-        if (!this.enable()) {
+        if (!this.enable(task)) {
           return beforeUpload()
         }
 
@@ -140,7 +140,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
       overwriteBeforeFileUploadComplete: (task: UploadTask, file: UploadFile) => {
         const beforeFileComplete = () => beforeFileUploadComplete?.(task, file) || Promise.resolve()
 
-        if (!this.enable()) {
+        if (!this.enable(task)) {
           return beforeFileComplete()
         }
 

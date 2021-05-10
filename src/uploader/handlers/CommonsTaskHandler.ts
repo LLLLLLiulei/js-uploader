@@ -157,13 +157,13 @@ export class CommonsTaskHandler extends TaskHandler {
               subscriber?.unsubscribe()
 
               let idIndex = this.task.fileIDList.indexOf(file.id)
-              if (idIndex !== -1) {
+              if (idIndex > -1) {
                 this.task.fileIDList.splice(idIndex, 1)
                 this.task.fileSize -= file.size
                 this.task.uploaded -= file.uploaded
               }
-              let fileIndex = this.task.fileList.findIndex((i) => i.id === file.id)
-              if (fileIndex !== -1) {
+              let fileIndex = this.task.fileList?.findIndex((i) => i.id === file.id)!
+              if (fileIndex > -1) {
                 this.changeUploadFileStatus(this.task.fileList[fileIndex], StatusCode.Pause)
                 this.task.fileList.splice(fileIndex, 1)
               }
