@@ -1,4 +1,13 @@
-import { UploadTask, UploaderOptions, FileChunk, UploadFile, Protocol, Obj, OSSProvider } from '../../interface'
+import {
+  UploadTask,
+  UploaderOptions,
+  FileChunk,
+  UploadFile,
+  Protocol,
+  Obj,
+  OSSProvider,
+  RequestMethod,
+} from '../../interface'
 import { Observable, from, of } from 'rxjs'
 import { ajax, AjaxResponse } from 'rxjs/ajax'
 import { CommonsTaskHandler } from './CommonsTaskHandler'
@@ -50,7 +59,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
     }
 
     let { requestOptions, requestBodyProcessFn } = uploaderOptions
-    let { headers, url } = requestOptions
+    let { headers, url, method } = requestOptions
 
     uploaderOptions.chunkSize = this.chunkSize
     uploaderOptions.requestOptions.url = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
@@ -70,6 +79,14 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
         return this.createObserverble(headers, task, upfile, chunk).toPromise()
       }
     }
+    uploaderOptions.requestOptions.method = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      if (this.enable(task)) {
+        return 'POST'
+      } else {
+        return typeof method === 'function' ? method(task, upfile, chunk) : (method as RequestMethod)
+      }
+    }
+
     uploaderOptions.requestBodyProcessFn = (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => {
       if (this.enable(task)) {
         return params.file

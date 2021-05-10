@@ -246,13 +246,14 @@ export interface OssOptions {
 
 export type TPromise<T> = T | Promise<T>
 
+export type ResponseType = 'json' | 'text'
 export interface RequestOptions {
   // 上传请求url
   url: string | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => TPromise<string>)
   headers?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => TPromise<Obj>)
   body?: Obj | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => TPromise<Obj>)
-  method?: RequestMethod
-  responseType?: 'json' | 'text'
+  method?: RequestMethod | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => TPromise<RequestMethod>)
+  responseType?: ResponseType | ((task: UploadTask, upfile: UploadFile, chunk: FileChunk) => TPromise<ResponseType>)
   timeout?: number
   withCredentials?: boolean
 }
@@ -317,6 +318,8 @@ export interface UploaderOptions {
 
   // 处理requestBody的方法
   requestBodyProcessFn?: (task: UploadTask, upfile: UploadFile, chunk: FileChunk, params: Obj) => TPromise<any>
+
+  beforeParseDataTransfer?: (e: DragEvent) => MaybePromise
 
   // 文件添加前（选择文件后）
   beforeFilesAdd?: (files: File[]) => MaybePromise

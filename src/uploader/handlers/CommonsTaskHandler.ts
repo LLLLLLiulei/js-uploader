@@ -601,12 +601,18 @@ export class CommonsTaskHandler extends TaskHandler {
 
   private postChunk(params: UploadFormData, upFile: UploadFile, chunk: FileChunk): Observable<AjaxResponse> {
     // 获取http请求相关配置
-    const { method, responseType } = this.uploaderOptions.requestOptions
     const requestOptions$: Observable<RequestOpts> = forkJoin([
       this.getServerURL(upFile, chunk),
       this.getRequestHeaders(upFile, chunk),
       this.getRequestBody(upFile, params, chunk),
-    ]).pipe(map(([url = 0, headers = 1, body = 2]) => ({ url, headers, body, method, responseType } as RequestOpts)))
+      this.getRequestMethod(upFile, chunk),
+      this.getResponseType(upFile, chunk),
+    ]).pipe(
+      map(
+        ([url = 0, headers = 1, body = 2, method = 3, responseType = 4]) =>
+          ({ url, headers, body, method, responseType } as RequestOpts),
+      ),
+    )
 
     return requestOptions$.pipe(
       concatMap((res: RequestOpts) => {

@@ -15,6 +15,8 @@ import {
   Obj,
   AjaxResponse,
   StatusCode,
+  RequestMethod,
+  ResponseType,
 } from '../../interface'
 import { of, from, Observable, Subscriber } from 'rxjs'
 import { tap, map, switchMap, catchError, mapTo, concatMap, filter, mergeMap } from 'rxjs/operators'
@@ -96,10 +98,23 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
       throw new Error('ossOptions配置错误！')
     }
     let { chunkSize, chunked, requestBodyProcessFn, requestOptions } = uploaderOptions
-    let { url, headers } = requestOptions
+    let { url, headers, responseType, method } = requestOptions
     uploaderOptions.chunkSize = chunked ? Math.max(chunkSize || 0, 1024 ** 2 * 5) : chunkSize
-    uploaderOptions.requestOptions.method = 'PUT'
-    uploaderOptions.requestOptions.responseType = 'text'
+
+    uploaderOptions.requestOptions.responseType = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      if (!this.enable(task)) {
+        return typeof responseType === 'function' ? responseType(task, upfile, chunk) : (responseType as ResponseType)
+      } else {
+        return 'text'
+      }
+    }
+    uploaderOptions.requestOptions.method = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
+      if (!this.enable(task)) {
+        return typeof method === 'function' ? method(task, upfile, chunk) : (method as RequestMethod)
+      } else {
+        return 'PUT'
+      }
+    }
     uploaderOptions.requestOptions.url = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
       if (!this.enable(task)) {
         return this.createObserverble(url, task, upfile, chunk).toPromise()
@@ -126,7 +141,7 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
               method: uploaderOptions.requestOptions.method!,
               headers: { [SHA256_HEADER]: UNSIGNED_PAYLOAD },
               query: { partNumber: String(chunk.index + 1), uploadId: uploadId! },
-            }
+            } as RequestToSign
           }),
           switchMap((requestToSign) => this.signRequest(requestToSign)),
           map(({ headers }) => {

@@ -147,7 +147,6 @@ export class Uploader extends Base {
   }
 
   private executeForResult(task: UploadTask, action?: string): Observable<UploadTask> {
-    let handler: Nullable<TaskHandler>
     return of(task).pipe(
       filter((task) => task.status === StatusCode.Waiting),
       concatMap(() => this.getTaskHandler(task)),
@@ -155,28 +154,27 @@ export class Uploader extends Base {
         handler = this.rebindTaskHandlerEvent(handler)
         action === 'resume' ? handler.resume() : action === 'retry' ? handler.retry() : handler.handle()
       }),
-      mapTo(task),
-      switchMap((task) =>
+      concatMap((handler) =>
         race(
-          fromEvent(handler!, EventType.TaskPause).pipe(
+          fromEvent(handler, EventType.TaskPause).pipe(
             tap(() => {
               // 暂停
               Logger.info('任务暂停')
             }),
           ),
-          fromEvent(handler!, EventType.TaskCancel).pipe(
+          fromEvent(handler, EventType.TaskCancel).pipe(
             tap(() => {
               // 取消
               this.freeHandler(task)
             }),
           ),
-          fromEvent(handler!, EventType.TaskComplete).pipe(
+          fromEvent(handler, EventType.TaskComplete).pipe(
             tap(() => {
               // 完成
               this.freeHandler(task)
             }),
           ),
-          fromEvent(handler!, EventType.TaskError).pipe(
+          fromEvent(handler, EventType.TaskError).pipe(
             switchMap((err) => {
               // 出错 跳过错误的任务？
               if (this.options.skipTaskWhenUploadError) {

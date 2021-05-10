@@ -84,6 +84,14 @@ export abstract class TaskHandler extends Base {
     return this.createObserverble(this.uploaderOptions.requestOptions.url, this.task, uploadfile, chunk)
   }
 
+  protected getRequestMethod(uploadfile: UploadFile, chunk: FileChunk) {
+    return this.createObserverble(this.uploaderOptions.requestOptions.method, this.task, uploadfile, chunk)
+  }
+
+  protected getResponseType(uploadfile: UploadFile, chunk: FileChunk) {
+    return this.createObserverble(this.uploaderOptions.requestOptions.responseType, this.task, uploadfile, chunk)
+  }
+
   protected getRequestHeaders(uploadfile: UploadFile, chunk: FileChunk): Observable<Obj | undefined> {
     return this.createObserverble(this.uploaderOptions.requestOptions.headers, this.task, uploadfile, chunk)
   }
