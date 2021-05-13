@@ -1,4 +1,4 @@
-import { EventEmitter, FileStore, RxStorage } from './modules'
+import { EventEmitter, FileStore, getStorage } from './modules'
 import { Observable, from, of, Subscriber, Subscription, forkJoin, NEVER, merge } from 'rxjs'
 import {
   bufferCount,
@@ -18,7 +18,7 @@ import { Logger } from '../shared'
 import { isElectron } from '../utils'
 
 export default class Base extends EventEmitter {
-  protected constructor() {
+  protected constructor(private uploaderID?: ID) {
     super()
   }
 
@@ -54,7 +54,7 @@ export default class Base extends EventEmitter {
     return from(items)
       .pipe(
         bufferCount(1000),
-        concatMap((values) => RxStorage.FileChunk.setItems(values)),
+        concatMap((values) => getStorage(this.uploaderID).FileChunk.setItems(values)),
       )
       .toPromise()
   }
@@ -68,7 +68,7 @@ export default class Base extends EventEmitter {
     return from(items)
       .pipe(
         bufferCount(1000),
-        concatMap((values) => RxStorage.UploadFile.setItems(values)),
+        concatMap((values) => getStorage(this.uploaderID).UploadFile.setItems(values)),
       )
       .toPromise()
   }
@@ -82,7 +82,7 @@ export default class Base extends EventEmitter {
     return from(items)
       .pipe(
         bufferCount(1000),
-        concatMap((values) => RxStorage.UploadTask.setItems(values)),
+        concatMap((values) => getStorage(this.uploaderID).UploadTask.setItems(values)),
       )
       .toPromise()
   }
@@ -98,14 +98,14 @@ export default class Base extends EventEmitter {
         .then(() => {
           Logger.warn(`save file ${file.name}`)
           const upfile = file.raw instanceof Blob ? Object.assign({}, file, { raw: null }) : file
-          RxStorage.UploadFile.setItem(file.id, upfile).toPromise().then(resolve).catch(reject)
+          getStorage(this.uploaderID).UploadFile.setItem(file.id, upfile).toPromise().then(resolve).catch(reject)
         })
         .catch(reject)
     })
   }
 
   protected presistBlob(key: string, blob: Blob) {
-    return RxStorage.BinaryLike.setItem(key, blob).toPromise()
+    return getStorage(this.uploaderID).BinaryLike.setItem(key, blob).toPromise()
   }
 
   public presistTaskWithoutBlob(tasks: UploadTask[], nofication$?: Observable<any>): Observable<UploadTask[]> {
@@ -127,8 +127,8 @@ export default class Base extends EventEmitter {
         //   return arr
         // }, []),
         bufferCount(1000),
-        concatMap((values) => RxStorage.UploadFile.setItems(values)),
-        concatMap(() => RxStorage.UploadTask.setItem(uptask.id, uptask)),
+        concatMap((values) => getStorage(this.uploaderID).UploadFile.setItems(values)),
+        concatMap(() => getStorage(this.uploaderID).UploadTask.setItem(uptask.id, uptask)),
         last(),
         tap(() => {
           this.emit(EventType.TaskPresist, task)
@@ -149,7 +149,7 @@ export default class Base extends EventEmitter {
       return from(task.fileIDList).pipe(
         mergeMap((id) => from(this.presistUploadFile(FileStore.get(id)))),
         last(),
-        concatMap(() => RxStorage.UploadTask.setItem(uptask.id, uptask)),
+        concatMap(() => getStorage(this.uploaderID).UploadTask.setItem(uptask.id, uptask)),
         tap(() => {
           this.emit(EventType.TaskPresist, task)
         }),
@@ -162,10 +162,14 @@ export default class Base extends EventEmitter {
   protected async removeChunkFromStroage(...chunks: FileChunk[] | ID[]) {
     if (chunks?.length) {
       if (typeof chunks[0] === 'object') {
-        await RxStorage.FileChunk.removeItems((<FileChunk[]>chunks).map((i) => i.id)).toPromise()
+        await getStorage(this.uploaderID)
+          .FileChunk.removeItems((<FileChunk[]>chunks).map((i) => i.id))
+          .toPromise()
         console.log('Storage.FileChunk.removeItems')
       } else {
-        await RxStorage.FileChunk.removeItems((<ID[]>chunks).map((i) => i)).toPromise()
+        await getStorage(this.uploaderID)
+          .FileChunk.removeItems((<ID[]>chunks).map((i) => i))
+          .toPromise()
         console.log('Storage.FileChunk.removeItems')
       }
     }
@@ -185,18 +189,18 @@ export default class Base extends EventEmitter {
 
     return of(ids)
       .pipe(
-        concatMap(() => RxStorage.UploadFile.removeItems(ids)),
+        concatMap(() => getStorage(this.uploaderID).UploadFile.removeItems(ids)),
         tap(() => {
           console.log('Storage.UploadFile.removeItems', ids)
         }),
 
-        concatMap(() => RxStorage.BinaryLike.removeItems(ids)),
+        concatMap(() => getStorage(this.uploaderID).BinaryLike.removeItems(ids)),
         tap(() => {
           console.log('Storage.BinaryLike.removeItems', ids)
         }),
         concatMap(() =>
           from(ids).pipe(
-            mergeMap((id: string) => RxStorage.FileChunk.getKeysWhenKeyStartsWith(id)),
+            mergeMap((id: string) => getStorage(this.uploaderID).FileChunk.getKeysWhenKeyStartsWith(id)),
             reduce((arr: ID[], val: ID[]) => arr.concat(val), []),
             tap((val) => {
               console.log('Storage.FileChunk.keysStartingWith', val)
@@ -214,7 +218,8 @@ export default class Base extends EventEmitter {
     }
     const ids = tasks.map((i) => String(i.id))
     const fileIDs = tasks.reduce((res: ID[], cur) => res.concat(cur.fileIDList), [])
-    await RxStorage.UploadTask.removeItems(ids)
+    await getStorage(this.uploaderID)
+      .UploadTask.removeItems(ids)
       .pipe(
         tap(() => {
           console.log('Storage.UploadTask.removeItems', ids)
@@ -225,7 +230,11 @@ export default class Base extends EventEmitter {
   }
 
   protected clearStorage(): Promise<unknown> {
-    return merge(RxStorage.UploadTask.clear(), RxStorage.UploadFile.clear(), RxStorage.BinaryLike.clear()).toPromise()
+    return merge(
+      getStorage(this.uploaderID).UploadTask.clear(),
+      getStorage(this.uploaderID).UploadFile.clear(),
+      getStorage(this.uploaderID).BinaryLike.clear(),
+    ).toPromise()
   }
 
   protected hookWrap<T extends MaybePromise, V = any>(fn: T, promiseValue?: V): Promise<any> {

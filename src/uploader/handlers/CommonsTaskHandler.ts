@@ -415,7 +415,7 @@ export class CommonsTaskHandler extends TaskHandler {
         this.changeUploadFileStatus(uploadFile, StatusCode.Waiting)
         this.emit(EventType.FileWaiting, this.task, uploadFile)
       }),
-      concatMap((uploadFile: UploadFile) => {
+      mergeMap((uploadFile: UploadFile) => {
         let subscriber = this.fileSubscriptionInfoMap.get(uploadFile.id)
         subscriber?.complete()
         subscriber?.unsubscribe()
@@ -425,7 +425,7 @@ export class CommonsTaskHandler extends TaskHandler {
           this.fileSubscriptionInfoMap.set(uploadFile.id, subscriber)
           return () => subscription.unsubscribe()
         })
-      }),
+      }, this.uploaderOptions.fileConcurrency || 1),
     )
   }
 
@@ -547,7 +547,7 @@ export class CommonsTaskHandler extends TaskHandler {
     )
   }
 
-  private uploadChunks(uploadFile: UploadFile, concurrency: number): Observable<ChunkResponse[]> {
+  private uploadChunks(uploadFile: UploadFile, concurrency?: number): Observable<ChunkResponse[]> {
     const chunkList: FileChunk[] = uploadFile.chunkList || []
     const baseParams: BaseParams = {
       fileID: uploadFile.id,

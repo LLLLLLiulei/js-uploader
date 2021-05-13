@@ -8,7 +8,7 @@ class RxIDB extends IDB {
   readonly FileChunk: IDB<ID, FileChunk>
   readonly BinaryLike: IDB<ID>
 
-  constructor(id?: string) {
+  constructor(id?: ID) {
     const prefix = id ? `${RxIDB.dbPrefix}_${id}` : RxIDB.dbPrefix
     super(prefix + '_public')
 
@@ -19,16 +19,16 @@ class RxIDB extends IDB {
   }
 }
 
-const storageMap = new Map<string, RxIDB>()
+const storageMap = new Map<ID, RxIDB>()
 
-export const RxStorage = new RxIDB()
+const RxStorage = new RxIDB()
 
-export const getStorage = (id?: string) => {
+export const getStorage = (id?: ID) => {
   if (!id) {
     return RxStorage
   }
   if (storageMap.has(id)) {
-    return storageMap.get(id)
+    return storageMap.get(id)!
   }
   let storage = new RxIDB(id)
   storageMap.set(id, storage)

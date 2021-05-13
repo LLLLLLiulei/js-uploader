@@ -1,5 +1,5 @@
 import { ID, StatusCode, EventType, UploaderOptions, UploadFile, UploadTask } from '../interface'
-import { FileStore, FileDragger, FilePicker, RxStorage } from './modules'
+import { FileStore, FileDragger, FilePicker, getStorage } from './modules'
 import { handle as handleTask, TaskHandler } from './handlers'
 import {
   tap,
@@ -53,6 +53,7 @@ const defaultOptions: UploaderOptions = {
 }
 
 export class Uploader extends Base {
+  readonly id?: ID
   readonly options: UploaderOptions
   readonly taskQueue: UploadTask[] = []
   readonly filePickers: FilePicker[] = []
@@ -69,11 +70,12 @@ export class Uploader extends Base {
   private clear$ = this.action.pipe(filter((v) => v === 'clear'))
 
   constructor(options?: UploaderOptions) {
-    super()
+    super(options?.id)
 
     const opt: UploaderOptions = this.mergeOptions(options)
     this.validateOptions(opt)
     this.options = opt
+    this.id = this.options.id
     this.initFilePickersAndDraggers()
     this.initEventHandler()
     this.options.resumable && this.restoreTask()
@@ -390,7 +392,7 @@ export class Uploader extends Base {
   }
 
   private async restoreTask(): Promise<UploadTask[]> {
-    const taskList: UploadTask[] = await RxStorage.UploadTask.values().toPromise()
+    const taskList: UploadTask[] = await getStorage(this.id).UploadTask.values().toPromise()
 
     return scheduled(taskList || [], asyncScheduler)
       .pipe(

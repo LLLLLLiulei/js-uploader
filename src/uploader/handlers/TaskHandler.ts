@@ -2,7 +2,7 @@ import { Observable, Subscriber, of, from, forkJoin, Subscription, PartialObserv
 import { ID, Obj, StatusCode, UploaderOptions, UploadFile, UploadTask, FileChunk, TPromise } from '../../interface'
 import { fileReader } from '../helpers'
 import { tap, concatMap, mapTo, map, switchMap } from 'rxjs/operators'
-import { FileStore, RxStorage } from '../modules'
+import { FileStore, getStorage } from '../modules'
 import Base from '../Base'
 import { md5WorkerPool } from '../../shared'
 
@@ -11,7 +11,7 @@ export abstract class TaskHandler extends Base {
   protected uploaderOptions: UploaderOptions
 
   constructor(task: UploadTask, uploaderOptions: UploaderOptions) {
-    super()
+    super(uploaderOptions.id)
     this.task = task
     this.uploaderOptions = uploaderOptions
   }
@@ -107,45 +107,51 @@ export abstract class TaskHandler extends Base {
       if (uploadFile) {
         file$ = of(uploadFile)
       } else {
-        file$ = RxStorage.UploadFile.getItem(id).pipe(
-          concatMap((upfile) => {
-            if (!upfile) {
-              return of(null)
-            }
-            const source = []
-            const { chunkIDList, chunkList } = upfile
-            if (chunkIDList && chunkIDList.length && (!chunkList || chunkList.length !== chunkIDList.length)) {
-              source.push(
-                RxStorage.FileChunk.getItems(chunkIDList).pipe(
-                  map((res) => Object.values(res)),
-                  tap((chunkList: FileChunk[]) => {
-                    upfile.chunkList = chunkList.filter((ck) => {
-                      if (ck) {
-                        ck.status = ck.status === StatusCode.Complete ? ck.status : StatusCode.Pause
-                      }
-                      return !!ck
-                    }) as FileChunk[]
-                  }),
-                ),
-              )
-            }
-            if (!upfile.raw) {
-              source.push(
-                RxStorage.BinaryLike.getItem(upfile.id).pipe(
-                  tap((blob: unknown) => {
-                    upfile.raw = blob instanceof Blob ? (blob as Blob) : upfile.raw
-                  }),
-                ),
-              )
-            }
-            upfile.status = upfile.status === StatusCode.Complete ? upfile.status : StatusCode.Pause
-            upfile.progress = upfile.status === StatusCode.Complete ? 100 : upfile.progress
-            return source.length ? forkJoin(source).pipe(mapTo(upfile)) : of(upfile)
-          }),
-          tap((upfile) => {
-            upfile && FileStore.add(upfile)
-          }),
-        )
+        file$ = getStorage(this.uploaderOptions.id)
+          .UploadFile.getItem(id)
+          .pipe(
+            concatMap((upfile) => {
+              if (!upfile) {
+                return of(null)
+              }
+              const source = []
+              const { chunkIDList, chunkList } = upfile
+              if (chunkIDList && chunkIDList.length && (!chunkList || chunkList.length !== chunkIDList.length)) {
+                source.push(
+                  getStorage(this.uploaderOptions.id)
+                    .FileChunk.getItems(chunkIDList)
+                    .pipe(
+                      map((res) => Object.values(res)),
+                      tap((chunkList: FileChunk[]) => {
+                        upfile.chunkList = chunkList.filter((ck) => {
+                          if (ck) {
+                            ck.status = ck.status === StatusCode.Complete ? ck.status : StatusCode.Pause
+                          }
+                          return !!ck
+                        }) as FileChunk[]
+                      }),
+                    ),
+                )
+              }
+              if (!upfile.raw) {
+                source.push(
+                  getStorage(this.uploaderOptions.id)
+                    .BinaryLike.getItem(upfile.id)
+                    .pipe(
+                      tap((blob: unknown) => {
+                        upfile.raw = blob instanceof Blob ? (blob as Blob) : upfile.raw
+                      }),
+                    ),
+                )
+              }
+              upfile.status = upfile.status === StatusCode.Complete ? upfile.status : StatusCode.Pause
+              upfile.progress = upfile.status === StatusCode.Complete ? 100 : upfile.progress
+              return source.length ? forkJoin(source).pipe(mapTo(upfile)) : of(upfile)
+            }),
+            tap((upfile) => {
+              upfile && FileStore.add(upfile)
+            }),
+          )
       }
       const sub = file$.subscribe(ob)
       return () => sub.unsubscribe()

@@ -33,25 +33,41 @@ export class IDB<K extends string | number = string, V extends any = unknown> {
     this.conn$.connect()
   }
 
-  private initConn(): Promise<IDBDatabase> {
-    return new Promise<IDBDatabase>((resolve, reject) => {
-      const request = window.indexedDB.open(this.dbName, 1)
-      request.onsuccess = (e: Event) => {
-        const db = ((e.target as unknown) as { result: IDBDatabase }).result
-        if (!db.objectStoreNames.contains(this.tableName)) {
-          console.warn('no such store', this.tableName, db)
+  private async initConn(): Promise<IDBDatabase> {
+    const loop = () => {
+      return new Promise<Nullable<IDBDatabase>>((resolve, reject) => {
+        const request = window.indexedDB.open(this.dbName, 1)
+        request.onsuccess = (e: Event) => {
+          const db = ((e.target as unknown) as { result: IDBDatabase }).result
+          if (!db.objectStoreNames.contains(this.tableName)) {
+            console.warn('no such store', this.tableName, db)
+          }
+          resolve(db)
         }
-        resolve(db)
-      }
-      request.onupgradeneeded = (e: Event) => {
-        const db = ((e.target as unknown) as { result: IDBDatabase }).result
-        if (!db.objectStoreNames.contains(this.tableName)) {
-          db.createObjectStore(this.tableName, { autoIncrement: true })
+        request.onupgradeneeded = (e: Event) => {
+          const db = ((e.target as unknown) as { result: IDBDatabase }).result
+          if (!db.objectStoreNames.contains(this.tableName)) {
+            db.createObjectStore(this.tableName, { autoIncrement: true })
+          }
+          db.close()
+          resolve(null)
         }
-        resolve(db)
+        request.onerror = () => {
+          reject(new Error())
+        }
+      })
+    }
+
+    let db: Nullable<IDBDatabase> = null
+    do {
+      try {
+        db = await loop()
+      } catch (error) {
+        db = null
+        console.error(error)
       }
-      request.onerror = () => reject(new Error())
-    })
+    } while (db === null)
+    return db
   }
 
   setItem(key: K, value: V): Observable<V> {

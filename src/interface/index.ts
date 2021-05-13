@@ -272,6 +272,7 @@ export interface AjaxResponse {
  * 文件上传器配置
  */
 export interface UploaderOptions {
+  id?: ID
   // 请求配置
   requestOptions: RequestOptions
   // oss配置
@@ -296,6 +297,8 @@ export interface UploaderOptions {
   chunkSize?: number
   // 一个文件可同时上传的分片并发数
   chunkConcurrency?: number
+  // 可同时上传的文件数量
+  fileConcurrency?: number
   // 可同时上传的任务并发数
   taskConcurrency?: number
   // 任务中单个文件上传上传错误是否跳过该文件
