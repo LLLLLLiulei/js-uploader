@@ -36,7 +36,7 @@ export class IDB<K extends string | number = string, V extends any = unknown> {
   private async initConn(): Promise<IDBDatabase> {
     const loop = () => {
       return new Promise<Nullable<IDBDatabase>>((resolve, reject) => {
-        const request = window.indexedDB.open(this.dbName, 1)
+        const request = indexedDB.open(this.dbName, 1)
         request.onsuccess = (e: Event) => {
           const db = ((e.target as unknown) as { result: IDBDatabase }).result
           if (!db.objectStoreNames.contains(this.tableName)) {
@@ -58,16 +58,18 @@ export class IDB<K extends string | number = string, V extends any = unknown> {
       })
     }
 
+    let maxRetryTimes = 10
     let db: Nullable<IDBDatabase> = null
     do {
       try {
+        maxRetryTimes--
         db = await loop()
       } catch (error) {
         db = null
         console.error(error)
       }
-    } while (db === null)
-    return db
+    } while (db === null && maxRetryTimes > 0)
+    return db!
   }
 
   setItem(key: K, value: V): Observable<V> {

@@ -1,6 +1,6 @@
 {
     "name": "js-uploader",
-    "version": "0.2.6-beta",
+    "version": "0.2.8-beta",
     "description": "A JavaScript library for file upload",
     "main": "publish/dist/cjs/index.js",
     "module": "publish/dist/esm/index.js",

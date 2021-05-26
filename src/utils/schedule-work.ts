@@ -4,14 +4,19 @@ export const scheduleWork = (callback: (...args: any[]) => void, timeout?: numbe
   if (typeof callback !== 'function') {
     return
   }
-  if ('requestIdleCallback' in window) {
-    Logger.warn('scheduleWork : use requestIdleCallback!')
-    window.requestIdleCallback((idle) => callback(() => idle.timeRemaining()), { timeout })
-  } else if ('requestAnimationFrame' in window) {
-    Logger.warn('scheduleWork : use requestAnimationFrame!')
-    window.requestAnimationFrame(() => callback())
+  if (typeof window !== 'undefined') {
+    if ('requestIdleCallback' in window) {
+      Logger.warn('scheduleWork : use requestIdleCallback!')
+      window.requestIdleCallback((idle) => callback(() => idle.timeRemaining()), { timeout })
+    } else if ('requestAnimationFrame' in window) {
+      Logger.warn('scheduleWork : use requestAnimationFrame!')
+      window.requestAnimationFrame(() => callback())
+    } else {
+      Logger.warn('scheduleWork : use setTimeout!')
+      setTimeout(() => callback())
+    }
   } else {
     Logger.warn('scheduleWork : use setTimeout!')
-    window.setTimeout(() => callback())
+    setTimeout(() => callback())
   }
 }

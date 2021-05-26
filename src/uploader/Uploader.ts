@@ -383,7 +383,6 @@ export class Uploader extends Base {
   }
 
   private taskHandlerEventCallback(e: EventType, ...args: any[]) {
-    Logger.info('🚀 ~ file: Uploader.ts ~ line 179 ~ Uploader ~ taskHandlerEventCallback ~ e', e, args)
     this.emit(e, ...args)
   }
 

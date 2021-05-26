@@ -26,7 +26,7 @@ const postMessage = (() => {
 })()
 
 export const scheduleWork = (callback: ITaskCallback): void => {
-  if ('requestIdleCallback' in window) {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
     Logger.warn('use requestIdleCallback!')
     window.requestIdleCallback((idle) => callback?.(idle.didTimeout), { timeout: 3000 })
     return

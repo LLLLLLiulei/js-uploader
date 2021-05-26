@@ -191,7 +191,13 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
   }
 
   private async getUploadUrl(token: string): Promise<string> {
-    const protocol: Protocol = window.location.protocol as Protocol
+    let reg = /^https?:/
+    let protocol: Protocol = location.protocol as Protocol
+    if (!reg.test(protocol)) {
+      let res = reg.exec(location.origin)
+      protocol = (res?.length ? res[0] : 'http:') as Protocol
+    }
+
     const data = await this.getUpHosts(token, protocol)
     const hosts = data.up.acc.main
     return `${protocol}//${hosts[0]}`

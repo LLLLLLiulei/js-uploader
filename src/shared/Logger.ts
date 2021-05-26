@@ -94,6 +94,7 @@ export class ContextLogger {
 }
 
 export class Logger {
+  private static enable: boolean = true
   private static contextMap = new Map<string, ContextLogger>()
   private static defaultLevel = Level.debug
   private static outputLogger = new ContextLogger('rx-uploader', Logger.defaultLevel, (name, _, ...message) => {
@@ -123,19 +124,23 @@ export class Logger {
   }
 
   static warn(...message: any[]) {
-    Logger.outputLogger.warn(...message)
+    Logger.enable && Logger.outputLogger.warn(...message)
   }
 
   static info(...message: any[]) {
-    Logger.outputLogger.info(...message)
+    Logger.enable && Logger.outputLogger.info(...message)
   }
 
   static debug(...message: any[]) {
-    Logger.outputLogger.debug(...message)
+    Logger.enable && Logger.outputLogger.debug(...message)
   }
 
   static error(...message: any[]) {
-    Logger.outputLogger.error(...message)
+    Logger.enable && Logger.outputLogger.error(...message)
+  }
+
+  static setEnable(enable: boolean) {
+    Logger.enable = !!enable
   }
 }
 
