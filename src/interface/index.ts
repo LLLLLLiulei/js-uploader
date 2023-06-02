@@ -312,6 +312,9 @@ export interface UploaderOptions {
   // 文件过滤器
   fileFilter?: RegExp | ((fileName: string, file: File | string) => boolean)
 
+  // 可被恢复的任务状态
+  recoverableTaskStatus?: StatusCode[]
+
   //   读取目录的方法
   readdirFn?: (path: string) => TPromise<string[]>
   //   获取文件stat的方法

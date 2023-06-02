@@ -392,9 +392,16 @@ export class Uploader extends Base {
 
   private async restoreTask(): Promise<UploadTask[]> {
     const taskList: UploadTask[] = await getStorage(this.id).UploadTask.values().toPromise()
+    const { recoverableTaskStatus } = this.options
 
     return scheduled(taskList || [], asyncScheduler)
       .pipe(
+        filter((task) => {
+          if (recoverableTaskStatus?.length) {
+            return recoverableTaskStatus.includes(task.status)
+          }
+          return true
+        }),
         tap((task) => {
           if (task.status !== StatusCode.Complete) {
             task.status = task.status === StatusCode.Error ? task.status : StatusCode.Pause
