@@ -145,7 +145,7 @@ export class Logger {
 }
 
 const envifyLevel = () => {
-  const env = (process && process.env && process.env.NODE_ENV) || 'production'
+  const env = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) || 'production'
 
   switch (env) {
     case 'production':

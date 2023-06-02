@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "es2017",
+        "moduleResolution": "node",
+        "removeComments": false,
+        "preserveConstEnums": true,
+        "sourceMap": false,
+        "allowJs": true,
+        "checkJs": true,
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "lib": [
+            "ESNext",
+            "WebWorker",
+        ]
+    },
+    "include": [
+        "./*.ts"
+    ],
+    "exclude": [
+        "node_modules/**"
+    ]
+}

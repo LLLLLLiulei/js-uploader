@@ -1,78 +1,63 @@
-interface MessageData {
+import { fromEvent, iif, Subject, of, Observable, Subscriber } from 'rxjs'
+import { map, takeUntil, concatMap, tap, filter } from 'rxjs/operators'
+import '../global'
+
+interface WorkerMessage {
   action: string
+  data?: any
 }
 
-declare function postMessage(data: any, transferables?: Transferable[]): void
+const abort$ = new Subject()
 
-const $this = self
-
-let shouldAbort: boolean = false
-
-self.onmessage = (e: MessageEvent) => {
-  console.log(e)
-  let data = e.data
-  if (!data) {
-    return
-  }
-  shouldAbort = data.action == 'abort'
-  if (shouldAbort) {
-    return
-  }
-
-  console.time('computehash-worker')
-
-  let file = data
-  let currentChunk = 0
-  let blobSlice = File.prototype.slice
-  let chunkSize = 4194304 // Read in chunks of 4MB
-  let isArrayBuffer = file instanceof ArrayBuffer
-  let fileSize = !isArrayBuffer ? file.size : file.byteLength
-  let chunks = Math.ceil(fileSize / chunkSize)
-  let fileReader: Nullable<FileReader> = null
-  let spark = new SparkMD5.ArrayBuffer()
-  let calc = (data: ArrayBuffer) => {
-    console.log('read chunk nr', currentChunk + 1, 'of', chunks)
-    spark.append(data)
-    currentChunk++
-    if (currentChunk < chunks) {
-      loadNext()
-    } else {
-      console.log('finished loading')
-      let md5 = spark.end()
-      console.info('computed hash', md5)
-      $this.postMessage(md5)
-      console.timeEnd('computehash-worker')
-    }
-  }
-  if (!isArrayBuffer) {
-    fileReader = new FileReader()
-    fileReader.onload = function (e) {
-      calc(e.target?.result as ArrayBuffer)
-    }
-    fileReader.onerror = function (e) {
-      console.warn('oops, something went wrong.', e)
-    }
-  }
-  const checkAbort = () => {
-    if (shouldAbort) {
-      fileReader?.abort()
-      spark.destroy()
-      fileReader = spark = data = file = null as any
-      return true
-    }
-    return false
-  }
-  const loadNext = () => {
-    if (checkAbort()) {
-      return
-    }
-    let start = currentChunk * chunkSize
-    let end = start + chunkSize >= fileSize ? fileSize : start + chunkSize
-    if (isArrayBuffer) {
-      calc(file.slice(start, end))
-    } else {
-      fileReader?.readAsArrayBuffer(blobSlice.call(file, start, end))
-    }
-  }
-  loadNext()
-}
+fromEvent(self, 'message')
+  .pipe(
+    map((e) => e as MessageEvent<Blob | ArrayBuffer | WorkerMessage>),
+    map((e) => e.data),
+    filter((data) => {
+      console.log(data)
+      let shouldAbort = (<WorkerMessage>data).action === 'abort'
+      shouldAbort && abort$.next()
+      return !shouldAbort
+    }),
+    filter((data) => {
+      return data instanceof Blob || data instanceof ArrayBuffer
+    }),
+    map((data) => data as Blob | ArrayBuffer),
+    concatMap((data) => {
+      return iif(
+        () => data instanceof Blob,
+        of(data as Blob).pipe(
+          concatMap((blob) => {
+            return new Observable((subscriber: Subscriber<ArrayBuffer>) => {
+              let fileReader = new FileReader()
+              fileReader.onerror = () => {
+                subscriber.error(new Error())
+              }
+              fileReader.onload = (e) => {
+                subscriber.next(e.target?.result as ArrayBuffer)
+                subscriber.complete()
+              }
+              fileReader.readAsArrayBuffer(blob)
+              return () => fileReader.abort()
+            })
+          }),
+        ),
+        of(data as ArrayBuffer),
+      )
+    }),
+    concatMap((data) => {
+      return new Observable((subscriber: Subscriber<string>) => {
+        const spark = new SparkMD5.ArrayBuffer()
+        spark.append(data)
+        let md5 = spark.end()
+        subscriber.next(md5)
+        subscriber.complete()
+        return () => spark.destroy()
+      })
+    }),
+    tap((md5: string) => {
+      self.postMessage(md5)
+    }),
+    takeUntil(abort$),
+  )
+  .subscribe()

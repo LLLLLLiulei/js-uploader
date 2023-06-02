@@ -64,7 +64,7 @@ export class QiniuOSSTaskHandler extends CommonsTaskHandler {
     uploaderOptions.chunkSize = this.chunkSize
     uploaderOptions.requestOptions.url = (task: UploadTask, upfile: UploadFile, chunk: FileChunk) => {
       if (this.enable(task)) {
-        return this.getUploadBlockUrl(this.getFileExtraInfo(upfile).host || '', chunk.size || this.chunkSize)
+        return this.getUploadBlockUrl(this.getFileExtraInfo(upfile).host || '', chunk.size)
       } else {
         return this.createObserverble(url, task, upfile, chunk).toPromise()
       }

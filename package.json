@@ -1,6 +1,6 @@
 {
     "name": "js-uploader",
-    "version": "0.2.8-beta",
+    "version": "0.3.4-beta",
     "description": "A JavaScript library for file upload",
     "main": "publish/dist/cjs/index.js",
     "module": "publish/dist/esm/index.js",
@@ -11,8 +11,8 @@
         "clear_publish": "rm -rf ./publish/",
         "clean_dist_cjs": "rm -rf ./publish/dist/cjs",
         "clean_dist_es": "rm -rf ./publish/dist/esm",
-        "compile_cjs": "tsc publish/src/index.ts -m commonjs --outDir publish/dist/cjs --sourcemap --target ES6 -d --diagnostics --pretty --strict --noImplicitReturns --downlevelIteration --noUnusedLocals --noUnusedParameters --strict --suppressImplicitAnyIndexErrors --moduleResolution node --noEmitHelpers --importHelpers --lib dom,es5,es2015,es2016,es2017",
-        "compile_esm": "tsc publish/src/index.ts    -m ES2015   --outDir publish/dist/esm  --sourcemap --target ES6 -d --diagnostics --pretty --strict --noImplicitReturns --downlevelIteration --noUnusedLocals --noUnusedParameters --strict --suppressImplicitAnyIndexErrors --moduleResolution node --noEmitHelpers --importHelpers --lib dom,es5,es2015,es2016,es2017",
+        "compile_cjs": "tsc publish/src/index.ts -m commonjs --outDir publish/dist/cjs --sourcemap --target ES5 -d --diagnostics --pretty --strict --noImplicitReturns --downlevelIteration --noUnusedLocals --noUnusedParameters --strict --suppressImplicitAnyIndexErrors --moduleResolution node --noEmitHelpers --importHelpers --lib dom,es5,es2015,es2016,es2017",
+        "compile_esm": "tsc publish/src/index.ts    -m ES2015   --outDir publish/dist/esm  --sourcemap --target ES5 -d --diagnostics --pretty --strict --noImplicitReturns --downlevelIteration --noUnusedLocals --noUnusedParameters --strict --suppressImplicitAnyIndexErrors --moduleResolution node --noEmitHelpers --importHelpers --lib dom,es5,es2015,es2016,es2017",
         "copy_src_cjs": "shx mkdir -p ./publish/dist/cjs/src && shx cp -r ./src/* ./publish/dist/cjs/src",
         "copy_src_es": "shx mkdir -p ./publish/dist/esm/src && shx cp -r ./src/* ./publish/dist/esm/src",
         "copy_src": "shx mkdir -p ./publish/src && shx cp -r ./src/* ./publish/src",
@@ -71,19 +71,20 @@
         "webpack-dev-server": "^3.11.0"
     },
     "dependencies": {
-        "@aws-crypto/sha256-js": "^1.1.0",
-        "@aws-sdk/signature-v4": "^3.5.0",
+        "@aws-crypto/sha256-js": "1.1.0",
+        "@aws-sdk/signature-v4": "3.5.0",
         "@types/mime": "^2.0.3",
+        "esbuild": "^0.17.19",
         "mime": "^2.5.2",
         "path-browserify": "^1.0.1",
         "xml2js": "^0.4.23"
     },
     "peerDependencies": {
-        "@aws-crypto/sha256-js": "^1.1.0",
-        "@aws-sdk/signature-v4": "^3.5.0",
-        "rxjs": "^6.5.3",
-        "tslib": "^1.10.0",
-        "xml2js": "^0.4.23"
+        "@aws-crypto/sha256-js": "1.1.0",
+        "@aws-sdk/signature-v4": "3.5.0",
+        "rxjs": "6.5.3",
+        "tslib": "1.10.0",
+        "xml2js": "0.4.23"
     },
     "prettier": {
         "printWidth": 120,

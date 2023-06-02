@@ -199,6 +199,10 @@ export class AwsS3TaskHandler extends CommonsTaskHandler {
         }
 
         const createMultipartUpload = () => {
+          if (extraInfo.uploadId) {
+            return of(extraInfo)
+          }
+
           return getObjectKey().pipe(
             switchMap((key) => this.createMultipartUpload(key)),
             tap(({ uploadId, bucket }) => Object.assign(extraInfo, { uploadId, bucket })),

@@ -1,36 +1,38 @@
 {
-  "compilerOptions": {
-    "target": "ES2015",
-    "experimentalDecorators": true,
-    "sourceMap": true,
-    "module": "commonjs",
-    "emitDecoratorMetadata": true,
-    "suppressImplicitAnyIndexErrors": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    "esModuleInterop": true,
-    "noImplicitReturns": true,
-    "strict": true,
-    "allowJs": true,
-    "importHelpers": true,
-    "noEmitHelpers": true,
-    "lib": [
-      "dom",
-      "es5",
-      "es2015",
-      "es2016",
-      "es2017"
-    ]
-  },
-  "exclude": [
-    "node_modules",
-    "tools/build",
-    "dist",
-    "./webpack.config.js"
-  ],
-  "compileOnSave": false,
-  "awesomeTypescriptLoaderOptions": {
-    "useTranspileModule": true,
-    "useCache": true
-  }
+    "compilerOptions": {
+        "target": "ES2015",
+        "experimentalDecorators": true,
+        "sourceMap": true,
+        "module": "commonjs",
+        "emitDecoratorMetadata": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "skipLibCheck": true,
+        "allowSyntheticDefaultImports": true,
+        // "noUnusedLocals": true,
+        // "noUnusedParameters": true,
+        "esModuleInterop": true,
+        "noImplicitReturns": true,
+        "strict": true,
+        "allowJs": true,
+        "importHelpers": true,
+        "noEmitHelpers": true,
+        "lib": [
+            "dom",
+            "es5",
+            "es2015",
+            "es2016",
+            "es2017"
+        ]
+    },
+    "exclude": [
+        "node_modules",
+        "tools/build",
+        "dist",
+        "./webpack.config.js"
+    ],
+    "compileOnSave": false,
+    "awesomeTypescriptLoaderOptions": {
+        "useTranspileModule": true,
+        "useCache": true
+    }
 }
