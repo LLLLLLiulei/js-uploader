@@ -90,7 +90,7 @@ export class Uploader extends Base {
     Object.keys(defaultOptions).forEach((key) => {
       let k = key as keyof UploaderOptions
       if (typeof defaultOptions[k] === 'object') {
-        Object.assign(defaultOptions[k], opt[k])
+        Object.assign(defaultOptions[k] as Record<string, any>, opt[k])
         let val = Object.assign({}, defaultOptions[k], opt[k])
         Object.assign(opt, { [k]: val })
       }
@@ -393,6 +393,10 @@ export class Uploader extends Base {
   private async restoreTask(): Promise<UploadTask[]> {
     const taskList: UploadTask[] = await getStorage(this.id).UploadTask.values().toPromise()
     const { recoverableTaskStatus } = this.options
+
+    if (!taskList?.length) {
+      return []
+    }
 
     return scheduled(taskList || [], asyncScheduler)
       .pipe(

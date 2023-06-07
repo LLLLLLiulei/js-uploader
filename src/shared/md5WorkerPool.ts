@@ -13,10 +13,15 @@ interface Task {
   workerID?: string | number
 }
 
-class MD5Worker extends Worker {
+class MD5Worker {
   private static maxWorkerID: number = 1
+  private worker: Worker
   id: string | number = MD5Worker.maxWorkerID++
   isBusy: boolean = false
+
+  constructor(scriptURL: string) {
+    this.worker = new Worker(scriptURL)
+  }
 
   execute(task?: Task): void {
     task = task || taskQueue.pop()
@@ -25,15 +30,23 @@ class MD5Worker extends Worker {
       const { data, callback } = task
       task.workerID = this.id
       // transferable
-      data instanceof ArrayBuffer ? this.postMessage(data, [data]) : this.postMessage(data)
+      data instanceof ArrayBuffer ? this.worker.postMessage(data, [data]) : this.worker.postMessage(data)
       const complete = (error: Error | null, md5: string) => {
         typeof callback === 'function' && callback(error, md5)
         taskQueue.length && this.execute(taskQueue.pop()!)
         this.isBusy = false
       }
-      this.onmessage = (ev: MessageEvent) => complete(null, ev.data)
-      this.onerror = (ev: ErrorEvent) => complete(ev.error, '')
+      this.worker.onmessage = (ev: MessageEvent) => complete(null, ev.data)
+      this.worker.onerror = (ev: ErrorEvent) => complete(ev.error, '')
     }
+  }
+
+  terminate() {
+    this.worker.terminate()
+  }
+
+  postMessage(message: any) {
+    this.worker.postMessage(message)
   }
 }
 
