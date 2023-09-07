@@ -93,7 +93,7 @@ export default class Base extends EventEmitter {
         return reject('no file!')
       }
       const promise: Promise<any> =
-        isElectron() && file.raw ? this.presistBlob(String(file.id), file.raw) : Promise.resolve()
+        !isElectron() && file.raw ? this.presistBlob(String(file.id), file.raw) : Promise.resolve()
       promise
         .then(() => {
           Logger.warn(`save file ${file.name}`)
@@ -229,11 +229,13 @@ export default class Base extends EventEmitter {
       .toPromise()
   }
 
-  protected clearStorage(): Promise<unknown> {
+  protected clearStorage(uploaderID?: ID): Promise<unknown> {
+    const id = uploaderID || this.uploaderID
     return merge(
-      getStorage(this.uploaderID).UploadTask.clear(),
-      getStorage(this.uploaderID).UploadFile.clear(),
-      getStorage(this.uploaderID).BinaryLike.clear(),
+      getStorage(id).UploadTask.clear(),
+      getStorage(id).UploadFile.clear(),
+      getStorage(id).FileChunk.clear(),
+      getStorage(id).BinaryLike.clear(),
     ).toPromise()
   }
 

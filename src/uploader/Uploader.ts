@@ -224,32 +224,43 @@ export class Uploader extends Base {
       })
   }
 
-  cancel(task?: UploadTask): void {
+  cancel(task?: UploadTask): Promise<void | UploadTask> {
     if (task) {
       this.action.next('cancel')
-      this.removeTask(task)
+      return this.removeTask(task)
     } else {
-      this.clear()
+      return this.clear()
     }
   }
 
-  clear(): void {
-    this.action.next('clear')
-    const unsubscribe = () => {
-      this.uploadSubscription?.unsubscribe()
-      this.uploadSubscription = null
-      this.upload$ = null
-    }
-    unsubscribe()
+  clear(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.action.next('clear')
+      const unsubscribe = () => {
+        this.uploadSubscription?.unsubscribe()
+        this.uploadSubscription = null
+        this.upload$ = null
+      }
+      unsubscribe()
 
-    of(this.taskQueue.splice(0, this.taskQueue.length))
-      .pipe(
-        tap(() => this.emit(EventType.Clear)),
-        concatMap((list) => this.removeTask(list, true)),
-        concatMap(this.clearStorage),
-        tap(() => FileStore.clear()),
-      )
-      .subscribe({ complete: unsubscribe })
+      if (this.taskQueue.length === 0) {
+        return resolve()
+      }
+
+      of(this.taskQueue.splice(0, this.taskQueue.length))
+        .pipe(
+          tap(() => this.emit(EventType.Clear)),
+          concatMap((list) => this.removeTask(list, true)),
+          concatMap(() => this.clearStorage(this.id)),
+          tap(() => FileStore.clear()),
+        )
+        .subscribe({
+          complete: () => {
+            unsubscribe()
+            resolve()
+          },
+        })
+    })
   }
 
   cancelFile(item: { task: UploadTask; files: UploadFile[] }) {

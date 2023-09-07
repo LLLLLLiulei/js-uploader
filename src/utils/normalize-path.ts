@@ -1,3 +1,3 @@
 export const normalizePath = (path = '') => {
-  return path.replace(/[/\/]+/, '/')
+  return path.replace(/\\/g, '/').replace(/[/\/]+/g, '/')
 }
